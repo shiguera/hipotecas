@@ -14,6 +14,7 @@ pub struct Hipoteca {
     cuotas: Vec<f64>, // Importe de las cuotas mensuales
     interes_cuotas: Vec<f64>, // Importe de la parte de intereses de las cuotas
     capital_cuotas: Vec<f64>, // Importe de la parte de amortización del capital de las cuotas
+    capital_pendiente: Vec<f64> // Capital pendiente de amortización en cada periodo
 }
 impl Hipoteca {
         pub fn new(fecha: Date<Utc>, c_0: f64, i: f64, meses: i32, periodo_1: i32, 
@@ -27,7 +28,8 @@ impl Hipoteca {
                 incremento_euribor: increm_euribor,
                 cuotas: Vec::<f64>::new(),
                 interes_cuotas: Vec::<f64>::new(),
-                capital_cuotas: Vec::<f64>::new()
+                capital_cuotas: Vec::<f64>::new(),
+                capital_pendiente: Vec::<f64>::new()
             }
 
         }
@@ -46,6 +48,7 @@ impl Hipoteca {
                 let capital_cuota = redondea_dos_decimales(a-interes_cuota);
                 self.capital_cuotas.push(capital_cuota);
                 capital_pendiente = redondea_dos_decimales(capital_pendiente - capital_cuota);
+                self.capital_pendiente.push(capital_pendiente);
             }
             // Ajuste de la ultima cuota por descuadres de redondeo
             if capital_pendiente != 0.0 {
@@ -53,13 +56,14 @@ impl Hipoteca {
                 *x += capital_pendiente;
                 let y = self.capital_cuotas.last_mut().unwrap();
                 *y += capital_pendiente;
+                let z = self.capital_pendiente.last_mut().unwrap();
+                *z = 0.0;
             } 
         }
         pub fn disp_cuadro_amortizacion(&self) {
-            let mut cap_pendiente = self.c_0;
             for _i in 0..self.cuotas.len() {
-                cap_pendiente = redondea_dos_decimales(cap_pendiente - self.capital_cuotas[_i]);
-                println!("{} {} {} {} {}", _i+1, cap_pendiente, self.cuotas[_i], self.capital_cuotas[_i], self.interes_cuotas[_i]);
+                println!("{} {} {} {} {}", _i+1, self.capital_pendiente[_i], 
+                    self.cuotas[_i], self.capital_cuotas[_i], self.interes_cuotas[_i]);
             }
         }
 }
