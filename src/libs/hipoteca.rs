@@ -12,6 +12,8 @@ pub struct Hipoteca {
     revision_1: i32, // Meses de aplicación del tipo de interes nominal inicial
     intervalo_revisiones: i32, // Meses entre actualización tipos interés
     incremento_euribor: f64, // Incremento aplicado al euribor en las revisiones
+    i_min: f64, // Tipo mínimo establecido en las cláusulas de la hipoteca
+    i_max: f64, // Tipo máximo establecido en las cláusulas de la hipoteca
     cuotas: Vec<f64>, // Importe de las cuotas mensuales
     interes_cuotas: Vec<f64>, // Importe de la parte de intereses de las cuotas
     capital_cuotas: Vec<f64>, // Importe de la parte de amortización del capital de las cuotas
@@ -19,16 +21,18 @@ pub struct Hipoteca {
 }
 impl Hipoteca {
         pub fn new(nombre: String, fecha: Date<Utc>, c_0: f64, i: f64, meses: i32, periodo_1: i32, 
-        intervalo_periodos: i32, increm_euribor: f64) -> Self {
+        intervalo_periodos: i32, increm_euribor: f64, i_min: f64, i_max: f64) -> Self {
             Hipoteca { 
                 nombre_operacion: nombre,
                 fecha: fecha, 
                 c_0: c_0, 
-                i: i, 
+                i: i,  
                 meses: meses, 
                 revision_1: periodo_1, 
                 intervalo_revisiones: intervalo_periodos, 
                 incremento_euribor: increm_euribor,
+                i_min: i_min,
+                i_max: i_max,
                 cuotas: Vec::<f64>::new(),
                 interes_cuotas: Vec::<f64>::new(),
                 capital_cuotas: Vec::<f64>::new(),
@@ -77,7 +81,10 @@ mod tests {
     #[test]
     fn test_hipoteca() {
         let nombre = String::from("Prueba");
-        let mut h1= Hipoteca::new(nombre, Utc.ymd(2004,3,17), 84140.0, 0.04,300,6,12,0.01);
+        let fecha = Utc.ymd(2004,3,17);
+        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+            300,6,12,0.01, 
+            0.04, 0.12);
         h1.calcula_cuotas();
         assert_eq!(444.12, h1.cuotas[0]);
         assert_eq!(163.65, h1.capital_cuotas[0]);
