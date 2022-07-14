@@ -1,5 +1,16 @@
+use chrono::prelude::*;
+
 use std::collections::HashMap;
 
+fn add_month(date: Date<Utc>) -> Date<Utc> {
+    let dt:Date<Utc>;
+    if date.month()<12 {
+        dt = Utc.ymd(date.year(), date.month()+1, date.day());
+    } else {
+        dt = Utc.ymd(date.year()+1, 1, date.day());
+    }
+    dt
+}
 
 pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
     let i_mensual: f64 = i_anual/12.0;
@@ -98,6 +109,26 @@ pub fn read_euribor_table() -> HashMap<usize, Vec<f64>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn test_add_month() {
+        let dt = Utc.ymd(2022, 1, 1);
+        let dt2 = add_month(dt);
+        assert_eq!(2022, dt2.year());
+        assert_eq!(2, dt2.month());
+        assert_eq!(1, dt2.day());
+
+        let dt = Utc.ymd(2022, 2, 15);
+        let dt2 = add_month(dt);
+        assert_eq!(2022, dt2.year());
+        assert_eq!(3, dt2.month());
+        assert_eq!(15, dt2.day());
+
+        let dt = Utc.ymd(2022, 12, 10);
+        let dt2 = add_month(dt);
+        assert_eq!(2023, dt2.year());
+        assert_eq!(1, dt2.month());
+        assert_eq!(10, dt2.day());
+    }
     #[test]
     fn test_interes_periodo() {
         let int:f64 = interes_periodo(84140.0, 0.04/12.0);
