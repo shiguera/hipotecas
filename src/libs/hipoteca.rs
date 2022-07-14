@@ -4,6 +4,7 @@ use chrono::Utc;
 use super::lib::*;
 
 pub struct Hipoteca {
+    nombre_operacion: String, // Usado para los ficheros que se creen
     fecha: Date<Utc>, // Fecha inicial de la hipoteca
     c_0: f64, // Capital inicial prestado
     i: f64, // Tipo de interés nominal anual
@@ -17,9 +18,11 @@ pub struct Hipoteca {
     capital_pendiente: Vec<f64> // Capital pendiente de amortización en cada periodo
 }
 impl Hipoteca {
-        pub fn new(fecha: Date<Utc>, c_0: f64, i: f64, meses: i32, periodo_1: i32, 
+        pub fn new(nombre: String, fecha: Date<Utc>, c_0: f64, i: f64, meses: i32, periodo_1: i32, 
         intervalo_periodos: i32, increm_euribor: f64) -> Self {
-            Hipoteca { fecha: fecha, 
+            Hipoteca { 
+                nombre_operacion: nombre,
+                fecha: fecha, 
                 c_0: c_0, 
                 i: i, 
                 meses: meses, 
@@ -66,4 +69,31 @@ impl Hipoteca {
                     self.cuotas[_i], self.capital_cuotas[_i], self.interes_cuotas[_i]);
             }
         }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hipoteca() {
+        let nombre = String::from("Prueba");
+        let mut h1= Hipoteca::new(nombre, Utc.ymd(2004,3,17), 84140.0, 0.04,300,6,12,0.01);
+        h1.calcula_cuotas();
+        assert_eq!(444.12, h1.cuotas[0]);
+        assert_eq!(163.65, h1.capital_cuotas[0]);
+        assert_eq!(280.47, h1.interes_cuotas[0]);
+        assert_eq!(83976.35, h1.capital_pendiente[0]);
+        
+        assert_eq!(444.12, h1.cuotas[298]);
+        assert_eq!(441.17, h1.capital_cuotas[298]);
+        assert_eq!(2.95, h1.interes_cuotas[298]);
+        assert_eq!(443.64, h1.capital_pendiente[298]);
+        
+        assert_eq!(445.12, h1.cuotas[299]);
+        assert_eq!(443.64, h1.capital_cuotas[299]);
+        assert_eq!(1.48, h1.interes_cuotas[299]);
+        assert_eq!(0.0, h1.capital_pendiente[299]);
+        
+
+    }
 }
