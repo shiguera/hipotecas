@@ -44,7 +44,6 @@ pub fn last_day_of_month(year: i32, month: u32) -> u32 {
         _ => panic!("invalid month: {}" , month),
     }
 }
-
 pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
     let i_mensual: f64 = i_anual/12.0;
     let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
@@ -208,7 +207,6 @@ mod tests {
         assert_eq!(1324.78, redondea_dos_decimales(x));
         let x:f64 = 1324.785;
         assert_eq!(1324.79, redondea_dos_decimales(x));
-
     }
 
 }
