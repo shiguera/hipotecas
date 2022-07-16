@@ -30,7 +30,8 @@ pub struct Hipoteca {
     pub i_max: f64, 
     // Tabla de amortización completa, pero con todas
     // las cuotas calculadas con el interés inicial i
-    pub tabla_amort_inicial: Tabla_Amortizacion, 
+    pub tabla_amort_inicial: Tabla_Amortizacion,
+    pub tabla_amort_con_actualizaciones_euribor: Tabla_Amortizacion, 
 }
 impl Hipoteca {
         pub fn new(nombre: String, fecha: Date<Utc>, c_0: f64, 
@@ -49,6 +50,7 @@ impl Hipoteca {
                 i_min, 
                 i_max, 
                 tabla_amort_inicial: Tabla_Amortizacion::new(),
+                tabla_amort_con_actualizaciones_euribor: Tabla_Amortizacion::new(),
             }
         }
         pub fn mensualidad(&self) -> f64 {
@@ -94,6 +96,15 @@ impl Hipoteca {
                 capital_pendiente = redondea_dos_decimales(capital_pendiente - cuota_capital);
                 fecha_cuota = lib::add_month(fecha_cuota);
                 meses_restantes_antes -= 1;
+            }
+        }
+        fn calcula_tabla_amort_con_actualizaciones_euribor(&mut self) {
+            self.calcula_amort_primer_periodo();
+            let ult_cuota = self.tabla_amort_con_actualizaciones_euribor.cuotas.last_mut().unwrap();
+            let interes = ult_cuota.i;
+            let fecha_prox_vencim = lib::add_month(ult_cuota.fecha);
+            if fecha_prox_vencim < Utc::today() {
+
             }
         }
 }
