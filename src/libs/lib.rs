@@ -2,7 +2,7 @@ use chrono::prelude::*;
 
 use std::collections::HashMap;
 
-fn add_month(date: Date<Utc>) -> Date<Utc> {
+pub fn add_month(date: Date<Utc>) -> Date<Utc> {
     let dt:Date<Utc>;
     if date.month()<12 {
         dt = Utc.ymd(date.year(), date.month()+1, date.day());
