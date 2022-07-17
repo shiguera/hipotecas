@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use chrono::Utc;
 use libs::hipoteca::*;
 use std::io;
+use colored::*;
 
 fn main() {
     let nombre = String::from("Prueba");
@@ -12,7 +13,7 @@ fn main() {
         12,0.01, 0.04, 0.12);
 
     let mut nombre = String::new();
-    println!("Nombre: ");
+    println!("{}", "Nombre: ".yellow());
     let result = io::stdin().read_line(&mut nombre);
     println!("{:?}",result);
     println!("{:?}", nombre); // Incluye el caracter \n
