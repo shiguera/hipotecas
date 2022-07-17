@@ -6,7 +6,9 @@ use libs::hipoteca::*;
 use std::io;
 use colored::*;
 
+
 fn main() {
+    control::set_virtual_terminal(true);
     let nombre = String::from("Prueba");
     let mut h1= Hipoteca::new(nombre, Utc.ymd(2004,
         3,17), 84140.0, 0.04,300,6,
@@ -14,6 +16,8 @@ fn main() {
 
     let mut nombre = String::new();
     println!("{}", "Nombre: ".yellow());
+    
+
     let result = io::stdin().read_line(&mut nombre);
     println!("{:?}",result);
     println!("{:?}", nombre); // Incluye el caracter \n

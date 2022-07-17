@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 chrono = "0.4"
 colored = "2"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
