@@ -1,9 +1,7 @@
 use chrono::prelude::*;
 
-use std::collections::HashMap;
 
-pub fn add_month(date: Date<Utc>) -> Date<Utc> {
-    let dt:Date<Utc>;
+pub fn add_one_month(date: Date<Utc>) -> Date<Utc> {
     let agno: i32 = match date.month() {
         12 => date.year()+1,
         _ =>  date.year()
@@ -23,6 +21,13 @@ pub fn add_month(date: Date<Utc>) -> Date<Utc> {
         _ => panic!("Invalid month")
     };
     Utc.ymd(agno, mes, dia)
+}
+pub fn add_n_months(date: Date<Utc>, num_meses: i32) -> Date<Utc> {
+    let mut fecha:Date<Utc> = date;
+    for _i in 1..num_meses+1 {
+        fecha = add_one_month(fecha);
+    }
+    fecha
 }
 pub fn mes_anterior(year: i32, month: u32) -> (i32, u32) {
     if month>12 {
@@ -49,14 +54,30 @@ pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
     let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
     redondea_dos_decimales(a)
 }
-pub fn interes_periodo(c_0: f64, i: f64) -> f64 {
-    redondea_dos_decimales(c_0*i)
+pub fn intereses_periodo(capital_pendiente: f64, interes_periodo: f64) -> f64 {
+    redondea_dos_decimales(capital_pendiente*interes_periodo)
 }
+/// Calcula el importe mensual a pagar en un prestamo 
+/// con el método de amortización francés (cuotas mensuales iguales)
+pub fn importe_cuota_mensual(capital_pendiente:f64, tipo_interes_anual: f64, meses: i32 ) -> f64 {
+    let i_mensual: f64 = tipo_interes_anual /12.0;
+    let importe_mensualidad: f64 = capital_pendiente * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
+    redondea_dos_decimales(importe_mensualidad)
+}
+/// Calcula los intereses a pagar en un mes a partir
+/// del capital pendiente y el tipo de interés anual
+pub fn intereses_mes(capital_pendiente: f64, tipo_interes_anual: f64) -> f64 {
+    redondea_dos_decimales(capital_pendiente*tipo_interes_anual/12.0)
+}
+
 pub fn capital_periodo(a: f64, interes: f64) -> f64 {
     redondea_dos_decimales(a-interes)
 }
 pub fn redondea_dos_decimales(valor:f64) -> f64 {
     (valor*100.0).round()/100.0
+}
+pub fn redondea_cinco_decimales(valor:f64) -> f64 {
+    (valor*100000.0).round()/100000.0
 }
 
 #[cfg(test)]
@@ -91,63 +112,63 @@ mod tests {
     }
 
     #[test]
-    fn test_add_month() {
+    fn test_add_one_month() {
         let dt = Utc.ymd(2022, 1, 1);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(1, dt2.day());
 
         let dt = Utc.ymd(2022, 2, 15);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(3, dt2.month());
         assert_eq!(15, dt2.day());
 
         let dt = Utc.ymd(2022, 12, 10);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2023, dt2.year());
         assert_eq!(1, dt2.month());
         assert_eq!(10, dt2.day());
 
         let dt = Utc.ymd(2022, 1, 29);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(28, dt2.day());
 
         let dt = Utc.ymd(2022, 1, 30);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(28, dt2.day());
 
         let dt = Utc.ymd(2022, 1, 31);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(28, dt2.day());
 
         let dt = Utc.ymd(2000, 1, 29);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2000, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(29, dt2.day());
 
         let dt = Utc.ymd(2022, 1, 30);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(28, dt2.day());
 
         let dt = Utc.ymd(2022, 1, 31);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(2, dt2.month());
         assert_eq!(28, dt2.day());
     
         let dt = Utc.ymd(2022, 3, 31);
-        let dt2 = add_month(dt);
+        let dt2 = add_one_month(dt);
         assert_eq!(2022, dt2.year());
         assert_eq!(4, dt2.month());
         assert_eq!(30, dt2.day());
@@ -184,8 +205,14 @@ mod tests {
         */
     }
     #[test]
+    fn test_add_n_months() {
+        let fecha = Utc.ymd(2004, 3, 17);
+        let meses = 300;
+        assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
+    }
+    #[test]
     fn test_interes_periodo() {
-        let int:f64 = interes_periodo(84140.0, 0.04/12.0);
+        let int:f64 = intereses_periodo(84140.0, 0.04/12.0);
         assert_eq!(280.47, int);
     }
     #[test]

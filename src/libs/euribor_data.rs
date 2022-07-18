@@ -9,6 +9,7 @@ impl EuriborData {
     pub fn new() -> Self {
         EuriborData { tabla: Self::read_euribor_table() }
     }
+    /// Valores en tanto por ciento del euribor al cierre de los meses de cada año
     fn read_euribor_table() -> HashMap<i32, Vec<f64>> {
         let mut eu: HashMap<i32, Vec<f64>> = HashMap::new();
         // 2004 
@@ -101,14 +102,26 @@ impl EuriborData {
             mes_posible = 12;
         }
         let indice_mes = usize::try_from(mes_posible-1).unwrap();
-        self.tabla.get(&agno_posible).unwrap()[indice_mes]
+        redondea_cinco_decimales(self.tabla.get(&agno_posible).unwrap()[indice_mes]/100.0)
     }
     /// Devuelve el euribor correspondiente al cierre del mes anterior
     pub fn euribor_fecha(&self, fecha: Date<Utc>) -> f64 {
         let (agno, mes) = mes_anterior(fecha.year(), fecha.month());
         self.euribor_mes(mes, agno)
     }
-    
+    /// Hace la actualización del euribor al cierre del mes anterior a la fecha,
+    /// ajustando a un tipo mínimo y máximo
+    pub fn actualiza_euribor(&self, fecha:Date<Utc>, incremento: f64, i_min: f64, i_max: f64) -> f64 {
+        let mut tipo = self.euribor_fecha(fecha) + incremento;
+        if tipo < i_min {
+            tipo = i_min;
+        }
+        if tipo > i_max {
+            tipo = i_max;
+        }
+        tipo
+    }
+
 }
 
 #[cfg(test)]
@@ -117,7 +130,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let ed = EuriborData::new();
+        let _ed = EuriborData::new();
     }
     #[test]
     fn test_last_year() {
@@ -127,20 +140,27 @@ mod tests {
     #[test]
     fn test_euribor_mes() {
         let ed = EuriborData::new();
-        assert_eq!(-0.484, ed.euribor_mes(6, 2021));
-        assert_eq!(-0.108, ed.euribor_mes(4, 2020));
-        assert_eq!(-0.502, ed.euribor_mes(4, 2022));
+        assert_eq!(-0.484/100.0, ed.euribor_mes(6, 2021));
+        assert_eq!(-0.108/100.0, ed.euribor_mes(4, 2020));
+        assert_eq!(-0.502/100.0, ed.euribor_mes(4, 2022));
     }
     #[test]
     fn test_euribor_fecha() {
         let ed = EuriborData::new();
         assert_eq!(ed.euribor_mes(12, 2021), ed.euribor_fecha(Utc.ymd(2022, 1, 25)));        
         assert_eq!(ed.euribor_mes(5, 2021), ed.euribor_fecha(Utc.ymd(2021, 6, 17)));
-        assert_eq!(-0.108, ed.euribor_fecha(Utc.ymd(2020, 5, 1)));
-        assert_eq!(1.924, ed.euribor_fecha(Utc.ymd(2011, 4, 1)));
-        assert_eq!(-0.502, ed.euribor_fecha(Utc.ymd(2022, 5, 30)));
-        assert_eq!(2.301, ed.euribor_fecha(Utc.ymd(2005, 1, 31)));
-        
+        assert_eq!(redondea_cinco_decimales(-0.108/100.0), ed.euribor_fecha(Utc.ymd(2020, 5, 1)));
+        assert_eq!(redondea_cinco_decimales(1.924/100.0), ed.euribor_fecha(Utc.ymd(2011, 4, 1)));
+        assert_eq!(redondea_cinco_decimales(-0.502/100.0), ed.euribor_fecha(Utc.ymd(2022, 5, 30)));
+        assert_eq!(redondea_cinco_decimales(2.301/100.0), ed.euribor_fecha(Utc.ymd(2005, 1, 31)));
     }
 
+    #[test]
+    fn test_actualiza_euribor() {
+        let ed = EuriborData::new();
+        assert_eq!(0.00892, ed.actualiza_euribor(Utc.ymd(2020,5,1), 0.01, -0.1, 0.12));
+        assert_eq!(0.03, ed.actualiza_euribor(Utc.ymd(2020,5,1), 0.01, 0.03, 0.12));
+        assert_eq!(0.07893, ed.actualiza_euribor(Utc.ymd(2008,8,1), 0.025, 0.04, 0.12));
+        assert_eq!(0.12, ed.actualiza_euribor(Utc.ymd(2008,8,1), 0.1, 0.04, 0.12));
+    }
 }
