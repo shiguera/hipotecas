@@ -26,6 +26,7 @@ impl TablaAmortizacion {
     }
     pub fn print(&self, nombre: &str) -> std::io::Result<()> {
         let filename = String::from(nombre) + ".txt";
+        //println!("{}", filename);
         let file = File::create(filename)?;
         // Escribir la línea de cabeceras
         writeln!(&file, "{}; {}; {}; {}; {}; {}; {}; {}", "Fecha","i", "Meses","Pendiente_antes",

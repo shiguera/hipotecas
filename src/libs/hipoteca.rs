@@ -81,7 +81,7 @@ impl Hipoteca {
             // Ajuste de la ultima cuota por descuadres de redondeo
             if capital_pendiente_antes != 0.0 {
                 let ult_cuota = tabla.cuotas.last_mut().unwrap();
-                ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
+                //ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
                 ult_cuota.cuota_total += capital_pendiente_antes;
                 ult_cuota.cuota_capital += capital_pendiente_antes;
             } 
@@ -107,20 +107,19 @@ impl Hipoteca {
                     let cuota = Cuota::new(fecha_prox_vencim, tipo_interes, 
                         meses_restantes_antes,cap_pendiente_antes,cuota_total, cuota_capital,
                         cuota_intereses);
-                        tabla.push(cuota);
+                    tabla.push(cuota);
+                    cap_pendiente_antes = redondea_dos_decimales(cap_pendiente_antes - cuota_capital);
+                    meses_restantes_antes -= 1;
                     fecha_prox_vencim = add_one_month(fecha_prox_vencim);
                     if fecha_prox_vencim > self.fecha_ultimo_vencimiento {
-                        return tabla
+                        break;
                     }
-                    cap_pendiente_antes = tabla.cuotas.last().unwrap().cap_pendiente_despues();
-                    meses_restantes_antes -= 1;
                 }
             }
             // Ajuste de la ultima cuota por descuadres de redondeo
             if cap_pendiente_antes != 0.0 {
-                println!("cap_pendiente_antes:{}", cap_pendiente_antes);
                 let ult_cuota = tabla.cuotas.last_mut().unwrap();
-                ult_cuota.cap_pendiente_antes += cap_pendiente_antes;
+                //ult_cuota.cap_pendiente_antes += cap_pendiente_antes;
                 ult_cuota.cuota_total += cap_pendiente_antes;
                 ult_cuota.cuota_capital += cap_pendiente_antes;
             }
