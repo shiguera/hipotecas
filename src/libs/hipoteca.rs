@@ -120,8 +120,8 @@ impl Hipoteca {
             if cap_pendiente_antes != 0.0 {
                 let ult_cuota = tabla.cuotas.last_mut().unwrap();
                 //ult_cuota.cap_pendiente_antes += cap_pendiente_antes;
-                ult_cuota.cuota_total += cap_pendiente_antes;
-                ult_cuota.cuota_capital += cap_pendiente_antes;
+                ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + cap_pendiente_antes);
+                ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + cap_pendiente_antes);
             }
             tabla
         }

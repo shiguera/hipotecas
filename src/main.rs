@@ -12,7 +12,18 @@ use colored::*;
 
 
 fn main() -> Result<()>{
+    // Esta instrucción la usa la crate colored para funcionar bien bajo windows
     control::set_virtual_terminal(true);
+
+    // Ejecución con entrada de datos por consola y salida a ficheros txt
+    let result: Result<()> = ejecuta_en_terminal();
+
+
+
+    result
+}
+
+fn ejecuta_en_terminal() -> Result<()> {
     disp_caratula();
     let nombre = read_nombre();
     //println!("{}", nombre);
@@ -60,8 +71,9 @@ fn main() -> Result<()>{
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
     }
-    Ok(())
+    result
 }
+
 fn read_i_max() -> f64 {
     let mut cad = String::new();
     while cad.len() == 0 {
