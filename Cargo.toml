@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 chrono = "0.4"
 colored = "2"
+#calamine = "0.18.0"
+umya-spreadsheet = "0.7.2"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
