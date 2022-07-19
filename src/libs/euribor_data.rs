@@ -119,7 +119,7 @@ impl EuriborData {
         if tipo > i_max {
             tipo = i_max;
         }
-        tipo
+        redondea_cinco_decimales(tipo)
     }
 
 }

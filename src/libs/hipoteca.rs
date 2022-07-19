@@ -82,8 +82,8 @@ impl Hipoteca {
             if capital_pendiente_antes != 0.0 {
                 let ult_cuota = tabla.cuotas.last_mut().unwrap();
                 //ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
-                ult_cuota.cuota_total += capital_pendiente_antes;
-                ult_cuota.cuota_capital += capital_pendiente_antes;
+                ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + capital_pendiente_antes);
+                ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + capital_pendiente_antes);
             } 
             tabla
         }
@@ -103,7 +103,7 @@ impl Hipoteca {
                 let cuota_total: f64 = importe_cuota_mensual(cap_pendiente_antes, tipo_interes, meses_restantes_antes); 
                 for _i in 0..self.intervalo_revisiones {
                     let cuota_intereses = intereses_mes(cap_pendiente_antes, tipo_interes);
-                    let cuota_capital = cuota_total - cuota_intereses; 
+                    let cuota_capital = redondea_dos_decimales(cuota_total - cuota_intereses); 
                     let cuota = Cuota::new(fecha_prox_vencim, tipo_interes, 
                         meses_restantes_antes,cap_pendiente_antes,cuota_total, cuota_capital,
                         cuota_intereses);
