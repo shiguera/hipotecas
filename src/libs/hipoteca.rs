@@ -5,6 +5,7 @@ use super::lib::*;
 use super::cuota::Cuota;
 use super::tabla_amort::TablaAmortizacion;
 use super::euribor_data::EuriborData;
+use super::novacion::Novacion;
 
 pub struct Hipoteca {
     /// Usado para los nombres de los ficheros que se creen
@@ -30,17 +31,24 @@ pub struct Hipoteca {
     pub i_min: f64, 
     /// Tipo máximo establecido en las cláusulas de la hipoteca
     pub i_max: f64, 
+    /// Fecha en la que se produjo el impago
+    pub fecha_impago: Date<Utc>,
+    /// Fecha en la que se produjo la resolución del contrato
+    pub fecha_resolucion: Date<Utc>,
+    /// Novaciones: lista de novaciones y ampliaciones
+    pub novaciones: Vec<Novacion>,
     /// Tabla de amortización completa, pero con todas
     /// las cuotas calculadas con el interés inicial i
     pub tabla_amort_sin_actualizacion: TablaAmortizacion,
     /// Tabla de amortización con las actualizaciones del Euribor
     pub tabla_amort_con_actualizacion_euribor: TablaAmortizacion, 
+
 }
 impl Hipoteca {
         pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, capital_prestado: f64, 
             tipo_interes_anual: f64, meses: i32, meses_hasta_primera_revision: i32, 
             intervalo_revisiones: i32, incremento_euribor: f64, 
-            i_min: f64, i_max: f64) -> Self {
+            i_min: f64, i_max: f64, fecha_impago:Date<Utc>, fecha_resolucion:Date<Utc>) -> Self {
             Hipoteca { 
                 nombre_operacion,
                 fecha_escritura, 
@@ -53,6 +61,9 @@ impl Hipoteca {
                 incremento_euribor, 
                 i_min, 
                 i_max, 
+                fecha_impago,
+                fecha_resolucion,
+                novaciones: Vec::<Novacion>::new(),
                 tabla_amort_sin_actualizacion: TablaAmortizacion::new(),
                 tabla_amort_con_actualizacion_euribor: TablaAmortizacion::new(),
             }
@@ -162,7 +173,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12);
+            0.04, 0.12, Utc.ymd(2018, 5, 17),
+            Utc.ymd(2022, 8, 5));
     }
     #[test]
     fn test_importe_cuota_mensual() {
@@ -175,7 +187,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12);
+            0.04, 0.12, Utc.ymd(2018, 5, 17),
+            Utc.ymd(2022, 8, 5));
         h1.tabla_amort_sin_actualizacion = h1.calcula_tabla_amort_sin_actualizacion();
         assert_eq!(300, h1.tabla_amort_sin_actualizacion.len());
         let cuota: &Cuota = &h1.tabla_amort_sin_actualizacion.cuotas[0];
@@ -208,7 +221,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12);
+            0.04, 0.12, Utc.ymd(2018, 5, 17),
+            Utc.ymd(2022, 8, 5));
         h1.tabla_amort_sin_actualizacion = h1.calcula_amort_primer_periodo();
         assert_eq!(6, h1.tabla_amort_sin_actualizacion.len());
         let cuota: &Cuota = &h1.tabla_amort_sin_actualizacion.cuotas[0];
@@ -235,7 +249,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12);        
+            0.04, 0.12, Utc.ymd(2018, 5, 17),
+            Utc.ymd(2022, 8, 5));        
         h1.tabla_amort_con_actualizacion_euribor = h1.calcula_tabla_amort_con_actualizacion_euribor();
         h1.tabla_amort_con_actualizacion_euribor.disp();
     }
