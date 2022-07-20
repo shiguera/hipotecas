@@ -20,19 +20,96 @@ fn main() -> Result<()>{
     if args().len() != 2 {
         println!("ERROR DE EJECUCIÓN");
     }
-    let filename = args().last().unwrap();
-
+    let filename = String::from("C:\\ProgramaHipotecas\\") + &args().last().unwrap();
+    println!("{}", filename);
     // reader
     let path = std::path::Path::new(&filename);
     let mut book = reader::xlsx::read(path).unwrap();
     let worksheet = book.get_sheet(&0).unwrap();
     
     let mut h = read_data(worksheet);
-
     h.tabla_amort_sin_actualizacion = h.calcula_tabla_amort_sin_actualizacion();
-    //println!("tabla 1");
     h.tabla_amort_con_actualizacion_euribor = h.calcula_tabla_amort_con_actualizacion_euribor();
-    //println!("tabla 2");
+
+    print_txt_files(&h);    
+
+    let _ = book.new_sheet("TablaAmort");
+    let worksheet = book.get_sheet_by_name_mut("TablaAmort").unwrap();
+    ex_print_cabecera(worksheet);
+
+    ex_print_cuotas(&h, worksheet);
+
+
+    let _ = umya_spreadsheet::writer::xlsx::write(&book, path);
+    //wait();
+        
+
+    Ok(())
+}
+fn ex_print_cuotas(h: &Hipoteca, worksheet: &mut Worksheet) {
+    let cuotas = &h.tabla_amort_con_actualizacion_euribor.cuotas;
+    let mut fila = 2;
+    for i in 0..cuotas.len() {
+        let cuota = &cuotas[i];
+        worksheet.get_cell_by_column_and_row_mut(&1, &fila).set_value(date_to_string(cuota.fecha));
+        let _ = worksheet.get_style_by_column_and_row_mut(&1, &fila).get_number_format_mut()
+            .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_DATE_DDMMYYYYSLASH);
+        
+            worksheet.get_cell_by_column_and_row_mut(&2, &fila).set_value(cuota.i.to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&2, &fila).get_number_format_mut()
+            .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_PERCENTAGE_00);
+        
+            worksheet.get_cell_by_column_and_row_mut(&3, &fila).set_value_from_i32(cuota.meses_restantes_antes);
+        let _ = worksheet.get_style_by_column_and_row_mut(&3, &fila).get_number_format_mut()
+            .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER);
+
+        worksheet.get_cell_by_column_and_row_mut(&4, &fila).set_value(cuota.cap_pendiente_antes.to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&4, &fila).get_number_format_mut()
+                .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
+            
+        worksheet.get_cell_by_column_and_row_mut(&5, &fila).set_value(cuota.cuota_total.to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&5, &fila).get_number_format_mut()
+                .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
+                
+        worksheet.get_cell_by_column_and_row_mut(&6, &fila).set_value(cuota.cuota_capital.to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&6, &fila).get_number_format_mut()
+                .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
+
+        worksheet.get_cell_by_column_and_row_mut(&7, &fila).set_value(cuota.cuota_interes.to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&7, &fila).get_number_format_mut()
+                .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
+
+        worksheet.get_cell_by_column_and_row_mut(&8, &fila).set_value(cuota.cap_pendiente_despues().to_string());
+        let _ = worksheet.get_style_by_column_and_row_mut(&8, &fila).get_number_format_mut()
+                .set_format_code(umya_spreadsheet::NumberingFormat::FORMAT_NUMBER_COMMA_SEPARATED1);
+                        
+        fila +=1;
+    }
+}
+fn date_to_string(date: Date<Utc>) -> String {
+    let fecha = date.day().to_string() + "/" + &date.month().to_string() + &"/" +
+        &date.year().to_string();
+    fecha
+}
+fn ex_print_cabecera(worksheet: &mut Worksheet) {
+    worksheet.get_column_dimension_by_number_mut(&1).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&1, &1).set_value("Fecha");
+    worksheet.get_column_dimension_by_number_mut(&2).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&2, &1).set_value("Tipo");
+    worksheet.get_column_dimension_by_number_mut(&3).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&3, &1).set_value("Meses");
+    worksheet.get_column_dimension_by_number_mut(&4).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&4, &1).set_value("Pendiente_Antes");
+    worksheet.get_column_dimension_by_number_mut(&5).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&5, &1).set_value("Cuota_Total");
+    worksheet.get_column_dimension_by_number_mut(&6).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&6, &1).set_value("Cuota_Capital");
+    worksheet.get_column_dimension_by_number_mut(&7).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&7, &1).set_value("Cuota_Intereses");
+    worksheet.get_column_dimension_by_number_mut(&8).set_auto_width(true);
+    worksheet.get_cell_by_column_and_row_mut(&8, &1).set_value("Pendiente_Después");
+}
+fn print_txt_files(h: &Hipoteca) {
     let filename = h.nombre_operacion.clone();
     let result = h.tabla_amort_sin_actualizacion.print(&filename);
     if result.is_ok() {
@@ -49,13 +126,6 @@ fn main() -> Result<()>{
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
     }
-    
-
-
-    //wait();
-        
-
-    Ok(())
 }
 fn read_data(worksheet: &Worksheet) -> Hipoteca {
     let nombre = read_string(worksheet, "C5");
