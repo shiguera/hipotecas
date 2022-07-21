@@ -42,131 +42,182 @@ pub struct Hipoteca {
     pub tabla_amort_sin_actualizacion: TablaAmortizacion,
     /// Tabla de amortización con las actualizaciones del Euribor
     pub tabla_amort_con_actualizacion_euribor: TablaAmortizacion, 
-
+    /// Tabla de amortización para el periodo del impago a la resolución
+    pub tabla_amort_impago: TablaAmortizacion,
 }
 impl Hipoteca {
-        pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, capital_prestado: f64, 
+        
+    /// Crea una instancia de Hipoteca
+    pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, capital_prestado: f64, 
             tipo_interes_anual: f64, meses: i32, meses_hasta_primera_revision: i32, 
             intervalo_revisiones: i32, incremento_euribor: f64, 
             i_min: f64, i_max: f64, fecha_impago:Date<Utc>, fecha_resolucion:Date<Utc>) -> Self {
-            Hipoteca { 
-                nombre_operacion,
-                fecha_escritura, 
-                capital_prestado, 
-                tipo_interes_anual,  
-                meses, 
-                fecha_ultimo_vencimiento: add_n_months(fecha_escritura, meses),
-                meses_hasta_primera_revision, 
-                intervalo_revisiones,  
-                incremento_euribor, 
-                i_min, 
-                i_max, 
-                fecha_impago,
-                fecha_resolucion,
-                novaciones: Vec::<Novacion>::new(),
-                tabla_amort_sin_actualizacion: TablaAmortizacion::new(),
-                tabla_amort_con_actualizacion_euribor: TablaAmortizacion::new(),
-            }
-        }
-        /// Calcula la tabla de amortización con los datos iniciales de 
-        /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
-        /// de interés
-        pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
-            let mut tabla : TablaAmortizacion = TablaAmortizacion::new();
-            let mut fecha: Date<Utc> = add_one_month(self.fecha_escritura);            
-            let cuota_total = importe_cuota_mensual(self.capital_prestado, self.tipo_interes_anual, self.meses);
-            let tipo_interes = self.tipo_interes_anual;
-            let mut meses_restantes_antes = self.meses;
-            let mut capital_pendiente_antes: f64 = self.capital_prestado;
-            for _i in 0..self.meses {
-                let cuota_interes = intereses_mes(capital_pendiente_antes, tipo_interes);
-                let cuota_capital = redondea_dos_decimales(cuota_total-cuota_interes);
-                let cuota: Cuota = Cuota::new(fecha, self.tipo_interes_anual, meses_restantes_antes,
-                    capital_pendiente_antes,cuota_total, cuota_capital, cuota_interes);
-                tabla.push(cuota);
+        let mut h = Hipoteca { 
+            nombre_operacion,
+            fecha_escritura, 
+            capital_prestado, 
+            tipo_interes_anual,  
+            meses, 
+            fecha_ultimo_vencimiento: add_n_months(fecha_escritura, meses),
+            meses_hasta_primera_revision, 
+            intervalo_revisiones,  
+            incremento_euribor, 
+            i_min, 
+            i_max, 
+            fecha_impago,
+            fecha_resolucion,
+            novaciones: Vec::<Novacion>::new(),
+            tabla_amort_sin_actualizacion: TablaAmortizacion::new(),
+            tabla_amort_con_actualizacion_euribor: TablaAmortizacion::new(),
+            tabla_amort_impago: TablaAmortizacion::new(),
+        };
+        h.tabla_amort_sin_actualizacion = h.calcula_tabla_amort_sin_actualizacion();
+        h.tabla_amort_con_actualizacion_euribor = h.calcula_tabla_amort_con_actualizacion_euribor();
+        h        
+    }
 
-                capital_pendiente_antes = redondea_dos_decimales(capital_pendiente_antes - cuota_capital);
-                fecha = add_one_month(fecha);
-                meses_restantes_antes -= 1;
-            }
-            // Ajuste de la ultima cuota por descuadres de redondeo
-            if capital_pendiente_antes != 0.0 {
-                let ult_cuota = tabla.cuotas.last_mut().unwrap();
-                //ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
-                ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + capital_pendiente_antes);
-                ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + capital_pendiente_antes);
-            } 
-            tabla
-        }
+    /// Calcula la tabla de amortización con los datos iniciales de 
+    /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
+    /// de interés
+    pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
+        let mut tabla : TablaAmortizacion = TablaAmortizacion::new();
+        let mut fecha: Date<Utc> = add_one_month(self.fecha_escritura);            
+        let cuota_total = importe_cuota_mensual(self.capital_prestado, self.tipo_interes_anual, self.meses);
+        let tipo_interes = self.tipo_interes_anual;
+        let mut meses_restantes_antes = self.meses;
+        let mut capital_pendiente_antes: f64 = self.capital_prestado;
+        for _i in 0..self.meses {
+            let cuota_interes = intereses_mes(capital_pendiente_antes, tipo_interes);
+            let cuota_capital = redondea_dos_decimales(cuota_total-cuota_interes);
+            let cuota: Cuota = Cuota::new(fecha, self.tipo_interes_anual, meses_restantes_antes,
+                capital_pendiente_antes,cuota_total, cuota_capital, cuota_interes);
+            tabla.push(cuota);
 
-        pub fn calcula_tabla_amort_con_actualizacion_euribor(&mut self) -> TablaAmortizacion {
-            let ed = EuriborData::new();
-            let mut tabla = self.calcula_amort_primer_periodo();
+            capital_pendiente_antes = redondea_dos_decimales(capital_pendiente_antes - cuota_capital);
+            fecha = add_one_month(fecha);
+            meses_restantes_antes -= 1;
+        }
+        // Ajuste de la ultima cuota por descuadres de redondeo
+        if capital_pendiente_antes != 0.0 {
             let ult_cuota = tabla.cuotas.last_mut().unwrap();
-            let mut fecha_prox_vencim = add_one_month(ult_cuota.fecha);
-            let mut meses_restantes_antes = ult_cuota.meses_restantes_antes-1;
-            let mut cap_pendiente_antes = ult_cuota.cap_pendiente_despues();
-            // Ir calculando periodos con actualización euribor en cada periodo
-            while fecha_prox_vencim <= self.fecha_ultimo_vencimiento {
-                // TODO Actualizar euribor + increm, imax, imin
-                let tipo_interes = ed.actualiza_euribor(fecha_prox_vencim, 
-                    self.incremento_euribor, self.i_min, self.i_max);
-                let cuota_total: f64 = importe_cuota_mensual(cap_pendiente_antes, tipo_interes, meses_restantes_antes); 
-                for _i in 0..self.intervalo_revisiones {
-                    let cuota_intereses = intereses_mes(cap_pendiente_antes, tipo_interes);
-                    let cuota_capital = redondea_dos_decimales(cuota_total - cuota_intereses); 
-                    let cuota = Cuota::new(fecha_prox_vencim, tipo_interes, 
-                        meses_restantes_antes,cap_pendiente_antes,cuota_total, cuota_capital,
-                        cuota_intereses);
-                    tabla.push(cuota);
-                    cap_pendiente_antes = redondea_dos_decimales(cap_pendiente_antes - cuota_capital);
-                    meses_restantes_antes -= 1;
-                    fecha_prox_vencim = add_one_month(fecha_prox_vencim);
-                    if fecha_prox_vencim > self.fecha_ultimo_vencimiento {
-                        break;
-                    }
-                }
-            }
-            // Ajuste de la ultima cuota por descuadres de redondeo
-            if cap_pendiente_antes != 0.0 {
-                let ult_cuota = tabla.cuotas.last_mut().unwrap();
-                //ult_cuota.cap_pendiente_antes += cap_pendiente_antes;
-                ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + cap_pendiente_antes);
-                ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + cap_pendiente_antes);
-            }
-            tabla
-        }
-        /// Calcula una tabla de amortización para los meses iniciales, 
-        /// los que marca la escritura antes de la primera actualización
-        /// del euribor
-        fn calcula_amort_primer_periodo(&mut self) -> TablaAmortizacion {
-            let mut tabla = TablaAmortizacion::new();
-            let cuota_total = importe_cuota_mensual(self.capital_prestado, self.tipo_interes_anual, self.meses);
-            let mut capital_pendiente: f64 = self.capital_prestado;
-            let mut fecha_cuota: Date<Utc> = add_one_month(self.fecha_escritura);            
-            let mut meses_restantes_antes = self.meses;
-            for _i in 0..self.meses_hasta_primera_revision {
-                if fecha_cuota > self.fecha_ultimo_vencimiento {
-                    return tabla
-                }
-                let cuota_interes = redondea_dos_decimales(capital_pendiente*self.tipo_interes_anual/12.0);
-                let cuota_capital = redondea_dos_decimales(cuota_total-cuota_interes);
-                let cuota: Cuota = Cuota::new(fecha_cuota, self.tipo_interes_anual, meses_restantes_antes,
-                    capital_pendiente,cuota_total, cuota_capital, cuota_interes);
-                tabla.push(cuota);
-                capital_pendiente = redondea_dos_decimales(capital_pendiente - cuota_capital);
-                fecha_cuota = add_one_month(fecha_cuota);
-                meses_restantes_antes -= 1;
-            }
-            tabla
-        }
+            //ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
+            ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + capital_pendiente_antes);
+            ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + capital_pendiente_antes);
+        } 
+        tabla
+    }
 
+    /// Calcula la tabla de amortización actualizando
+    /// con el auribor en cada periodo
+    pub fn calcula_tabla_amort_con_actualizacion_euribor(&mut self) -> TablaAmortizacion {
+        let ed = EuriborData::new();
+        let mut tabla = self.calcula_amort_primer_periodo();
+        let ult_cuota = tabla.cuotas.last_mut().unwrap();
+        let mut fecha_prox_vencim = add_one_month(ult_cuota.fecha);
+        let mut meses_restantes_antes = ult_cuota.meses_restantes_antes-1;
+        let mut cap_pendiente_antes = ult_cuota.cap_pendiente_despues();
+        // Ir calculando periodos con actualización euribor en cada periodo
+        while fecha_prox_vencim <= self.fecha_ultimo_vencimiento {
+            // TODO Actualizar euribor + increm, imax, imin
+            let tipo_interes = ed.actualiza_euribor(fecha_prox_vencim, 
+                self.incremento_euribor, self.i_min, self.i_max);
+            let cuota_total: f64 = importe_cuota_mensual(cap_pendiente_antes, tipo_interes, meses_restantes_antes); 
+            for _i in 0..self.intervalo_revisiones {
+                let cuota_intereses = intereses_mes(cap_pendiente_antes, tipo_interes);
+                let cuota_capital = redondea_dos_decimales(cuota_total - cuota_intereses); 
+                let cuota = Cuota::new(fecha_prox_vencim, tipo_interes, 
+                    meses_restantes_antes,cap_pendiente_antes,cuota_total, cuota_capital,
+                    cuota_intereses);
+                tabla.push(cuota);
+                cap_pendiente_antes = redondea_dos_decimales(cap_pendiente_antes - cuota_capital);
+                meses_restantes_antes -= 1;
+                fecha_prox_vencim = add_one_month(fecha_prox_vencim);
+                if fecha_prox_vencim > self.fecha_ultimo_vencimiento {
+                    break;
+                }
+            }
+        }
+        // Ajuste de la ultima cuota por descuadres de redondeo
+        if cap_pendiente_antes != 0.0 {
+            let ult_cuota = tabla.cuotas.last_mut().unwrap();
+            //ult_cuota.cap_pendiente_antes += cap_pendiente_antes;
+            ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + cap_pendiente_antes);
+            ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + cap_pendiente_antes);
+        }
+        tabla
+    }
+
+    /// Calcula una tabla de amortización para los meses iniciales, 
+    /// los que marca la escritura antes de la primera actualización
+    /// del euribor
+    fn calcula_amort_primer_periodo(&mut self) -> TablaAmortizacion {
+        let mut tabla = TablaAmortizacion::new();
+        let cuota_total = importe_cuota_mensual(self.capital_prestado, self.tipo_interes_anual, self.meses);
+        let mut capital_pendiente: f64 = self.capital_prestado;
+        let mut fecha_cuota: Date<Utc> = add_one_month(self.fecha_escritura);            
+        let mut meses_restantes_antes = self.meses;
+        for _i in 0..self.meses_hasta_primera_revision {
+            if fecha_cuota > self.fecha_ultimo_vencimiento {
+                return tabla
+            }
+            let cuota_interes = redondea_dos_decimales(capital_pendiente*self.tipo_interes_anual/12.0);
+            let cuota_capital = redondea_dos_decimales(cuota_total-cuota_interes);
+            let cuota: Cuota = Cuota::new(fecha_cuota, self.tipo_interes_anual, meses_restantes_antes,
+                capital_pendiente,cuota_total, cuota_capital, cuota_interes);
+            tabla.push(cuota);
+            capital_pendiente = redondea_dos_decimales(capital_pendiente - cuota_capital);
+            fecha_cuota = add_one_month(fecha_cuota);
+            meses_restantes_antes -= 1;
+        }
+        tabla
+    }
+
+    /// Calcula la tabla de amortización desde el momento del 
+    /// impago hasta la fecha de resolución de la hipoteca
+    pub fn calcula_tabla_impago(&mut self) -> TablaAmortizacion  {
+        let mut t  =  TablaAmortizacion::new();
+        println!("tabla_amort:{}", self.tabla_amort_con_actualizacion_euribor.cuotas.len());
+        let cuotas_impago = self.tabla_amort_con_actualizacion_euribor
+            .cuotas.iter()
+            .filter(|x| x.fecha>=self.fecha_impago && x.fecha<=self.fecha_resolucion)
+            .for_each(|x| t.cuotas.push(x.clone()));
+        println!("impagos:{}", t.cuotas.len());
+        let ultima_cuota: &Cuota = t.cuotas.last().unwrap();
+        if ultima_cuota.fecha < self.fecha_resolucion {
+            let cap_pdte = ultima_cuota.cap_pendiente_despues();
+            let dias = (self.fecha_resolucion - ultima_cuota.fecha).num_days();
+            let intereses = redondea_dos_decimales(cap_pdte * dias as f64 * ultima_cuota.i / 365.0);
+            let cuota_total = cap_pdte + intereses;
+            let cuota = Cuota::new(self.fecha_resolucion, ultima_cuota.i,ultima_cuota.meses_restantes_antes,
+                cap_pdte, cuota_total, cap_pdte, intereses);
+            t.push(cuota);
+        }
+        t
+    }
 }
 
 
 mod tests {
     use super::*;
-
+    #[test]
+    fn test_pruebas() {
+        let d1 = Utc.ymd(2022, 5, 12);
+        let d2 = Utc.ymd(2021, 5, 12);
+        let x = (d1-d2).num_days();
+        println!("{}", x);
+        
+    }
+    #[test] 
+    fn test_calcula_tabla_impago() {
+        let nombre = String::from("Prueba");
+        let fecha = Utc.ymd(2004,3,17);
+        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+            300,6,12,0.01, 
+            0.04, 0.12, Utc.ymd(2018, 5, 17),
+            Utc.ymd(2022, 8, 5));
+        h1.tabla_amort_impago = h1.calcula_tabla_impago();
+        h1.tabla_amort_impago.disp();
+    }
     #[test]
     fn test_hipoteca() {
         let nombre = String::from("Prueba");

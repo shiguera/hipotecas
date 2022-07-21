@@ -21,23 +21,24 @@ fn main() -> Result<()>{
         println!("ERROR DE EJECUCIÓN");
     }
     let worksheet_file_name: String = args().last().unwrap();
-    let working_directory: String = String::from("C:\\Users\\profesor\\rustprj\\hipotecas\\target\\debug\\"); 
-
+    println!("{}", worksheet_file_name);
+    let working_directory: String = String::from("C:\\ProgramaHipotecas\\"); 
+    println!("{}", working_directory);
     let filepath_cad: String =  working_directory + &worksheet_file_name;
+    println!("{}", filepath_cad);
     let path = std::path::Path::new(&filepath_cad);
     let book: Spreadsheet = reader::xlsx::read(path).unwrap();
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
     let mut h = read_data_from_excel_file(worksheet);
-    
-    h.tabla_amort_sin_actualizacion = h.calcula_tabla_amort_sin_actualizacion();
-    h.tabla_amort_con_actualizacion_euribor = h.calcula_tabla_amort_con_actualizacion_euribor();
+    println!("Leídos datos");
+    h.tabla_amort_impago = h.calcula_tabla_impago();
 
     print_csv_files(&h);    
 
 
     // let _ = umya_spreadsheet::writer::xlsx::write(&book, path);
-    // wait();
+    //wait();
         
 
     Ok(())
@@ -66,6 +67,14 @@ fn print_csv_files(h: &Hipoteca) {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
     }
+    let filename = h.nombre_operacion.clone() + "_impago";
+    let result = h.tabla_amort_impago.print(&filename);
+    if result.is_ok() {
+        println!("El fichero con la tabla de impagos euribor se escribió en {}", h.nombre_operacion.clone()+"_impago.txt" );
+    } else {
+        println!("Se produjeron errores al escribir el fichero con la tabla de impagos");
+        println!("{:?}", result);
+    }
 }
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let nombre = read_string(worksheet, "C5");
@@ -86,6 +95,7 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
                 capital, tipo, meses, 
                 meses_primera_revision, intervalo_revisiones,
                 incremento_euribor, i_min, i_max, fecha_impago, fecha_resolucion);
+    println!("{} {}", h.fecha_impago, h.fecha_resolucion);
     h
 }
 fn read_string(worksheet: &Worksheet, coordinate: &str) -> String {
@@ -102,7 +112,7 @@ fn read_f64(worksheet: &Worksheet, coordinate: &str) -> f64 {
     cap    
 }
 fn read_fecha(worksheet: &Worksheet, coordinate: &str) -> Date<Utc> {
-    let cell = worksheet.get_cell("C6").unwrap();
+    let cell = worksheet.get_cell(coordinate).unwrap();
     let fecha_excel = cell.get_value().deref().to_owned();
     let fecha_f64 = fecha_excel.parse().unwrap();
     let fecha = excel_to_date_time_object(&fecha_f64,
@@ -116,3 +126,31 @@ fn wait() {
     let result = io::stdin().read_line(&mut nombre);
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_read_data_from_excel_file() {
+        let path = std::path::Path::new("assets\\Libro11.xlsx");
+        let book: Spreadsheet = reader::xlsx::read(path).unwrap();
+        let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
+        
+        let mut h = read_data_from_excel_file(worksheet);
+        println!("Leídos datos");
+        assert_eq!("Libro11", h.nombre_operacion);
+        assert_eq!(Utc.ymd(2004, 2, 17), h.fecha_escritura);
+        assert_eq!(84140.0, h.capital_prestado);
+        assert_eq!(0.04, h.tipo_interes_anual);
+        assert_eq!(300, h.meses);
+        assert_eq!(6, h.meses_hasta_primera_revision);
+        assert_eq!(12, h.intervalo_revisiones);
+        assert_eq!(0.01, h.incremento_euribor);
+        assert_eq!(0.04, h.i_min);
+        assert_eq!(0.12, h.i_max);
+        assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago);
+        assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion);
+
+        //h.tabla_amort_impago = h.calcula_tabla_impago();
+    
+    }
+}

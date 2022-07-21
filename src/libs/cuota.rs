@@ -23,7 +23,13 @@ pub struct Cuota {
     /// Parte de intereses de la cuota
     pub cuota_interes: f64, 
 }
-
+impl Clone for Cuota {
+    fn clone(&self) -> Self {
+        Cuota{fecha: self.fecha, i: self.i, meses_restantes_antes: self.meses_restantes_antes,
+            cap_pendiente_antes: self.cap_pendiente_antes, cuota_total: self.cuota_total,
+            cuota_capital: self.cuota_capital, cuota_interes: self.cuota_interes}
+    }
+}
 impl Cuota {
     pub fn new(fecha: Date<Utc>,i:f64, meses_restantes_antes: i32,
         cap_pendiente_antes:f64, cuota_total: f64, cuota_capital: f64, 
