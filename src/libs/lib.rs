@@ -41,6 +41,8 @@ pub fn mes_anterior(year: i32, month: u32) -> (i32, u32) {
 pub fn is_leap_year(year: i32) -> bool {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
 }
+/// Indica el número del último día de un mes
+#[allow(dead_code)]
 pub fn last_day_of_month(year: i32, month: u32) -> u32 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -49,14 +51,15 @@ pub fn last_day_of_month(year: i32, month: u32) -> u32 {
         _ => panic!("invalid month: {}" , month),
     }
 }
+
+/// Importe cuotas para un préstamo con el método de amortización francés
+#[allow(dead_code)]
 pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
     let i_mensual: f64 = i_anual/12.0;
     let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
     redondea_dos_decimales(a)
 }
-pub fn intereses_periodo(capital_pendiente: f64, interes_periodo: f64) -> f64 {
-    redondea_dos_decimales(capital_pendiente*interes_periodo)
-}
+
 /// Calcula el importe mensual a pagar en un prestamo 
 /// con el método de amortización francés (cuotas mensuales iguales)
 pub fn importe_cuota_mensual(capital_pendiente:f64, tipo_interes_anual: f64, meses: i32 ) -> f64 {
@@ -64,20 +67,28 @@ pub fn importe_cuota_mensual(capital_pendiente:f64, tipo_interes_anual: f64, mes
     let importe_mensualidad: f64 = capital_pendiente * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
     redondea_dos_decimales(importe_mensualidad)
 }
+
 /// Calcula los intereses a pagar en un mes a partir
 /// del capital pendiente y el tipo de interés anual
 pub fn intereses_mes(capital_pendiente: f64, tipo_interes_anual: f64) -> f64 {
     redondea_dos_decimales(capital_pendiente*tipo_interes_anual/12.0)
 }
 
-pub fn capital_periodo(a: f64, interes: f64) -> f64 {
-    redondea_dos_decimales(a-interes)
-}
+
+
 pub fn redondea_dos_decimales(valor:f64) -> f64 {
     (valor*100.0).round()/100.0
 }
 pub fn redondea_cinco_decimales(valor:f64) -> f64 {
     (valor*100000.0).round()/100000.0
+}
+
+/// Genera un String con la fecha fecha en formato dd/mm/año a partir de un chrono::Date<Utc>
+#[allow(dead_code)]
+pub fn date_to_string(date: Date<Utc>) -> String {
+    let fecha = date.day().to_string() + "/" + &date.month().to_string() + &"/" +
+        &date.year().to_string();
+    fecha
 }
 
 #[cfg(test)]
@@ -211,14 +222,7 @@ mod tests {
         assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
     }
     #[test]
-    fn test_interes_periodo() {
-        let int:f64 = intereses_periodo(84140.0, 0.04/12.0);
-        assert_eq!(280.47, int);
-    }
-    #[test]
-    fn test_capital_periodo() {
-        assert_eq!(163.65, capital_periodo(444.12, 280.47));
-    }
+   
     #[test]
     fn test_mensualidad() {
         let c_0: f64 = 84140.0;

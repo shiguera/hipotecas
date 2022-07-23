@@ -177,11 +177,11 @@ impl Hipoteca {
     pub fn calcula_tabla_impago(&mut self) -> TablaAmortizacion  {
         let mut t  =  TablaAmortizacion::new();
         println!("tabla_amort:{}", self.tabla_amort_con_actualizacion_euribor.cuotas.len());
-        let cuotas_impago = self.tabla_amort_con_actualizacion_euribor
+        let _cuotas_impago = self.tabla_amort_con_actualizacion_euribor
             .cuotas.iter()
             .filter(|x| x.fecha>=self.fecha_impago && x.fecha<=self.fecha_resolucion)
             .for_each(|x| t.cuotas.push(x.clone()));
-        println!("impagos:{}", t.cuotas.len());
+        //println!("impagos:{}", t.cuotas.len());
         let ultima_cuota: &Cuota = t.cuotas.last().unwrap();
         if ultima_cuota.fecha < self.fecha_resolucion {
             let cap_pdte = ultima_cuota.cap_pendiente_despues();
@@ -197,8 +197,12 @@ impl Hipoteca {
 }
 
 
+#[cfg(test)]
 mod tests {
+    //#[allow(unused_imports)]
     use super::*;
+    //use chrono::Utc;
+    
     #[test]
     fn test_pruebas() {
         let d1 = Utc.ymd(2022, 5, 12);
@@ -222,7 +226,7 @@ mod tests {
     fn test_hipoteca() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let _h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Utc.ymd(2018, 5, 17),
             Utc.ymd(2022, 8, 5));

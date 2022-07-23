@@ -1,14 +1,14 @@
 mod libs;
 
+use std::io;
+use std::io::{prelude::*, Result};
 
 use chrono::prelude::*;
 use chrono::Utc;
 use libs::hipoteca::*;
 use libs::lib::*;
-use std::io;
-use std::io::*;
-use std::io::Result;
-use colored::*;
+// use colored::*;
+
 use std::env::args;
 
 
@@ -21,17 +21,20 @@ fn main() -> Result<()>{
         println!("ERROR DE EJECUCIÓN");
     }
     let worksheet_file_name: String = args().last().unwrap();
-    println!("{}", worksheet_file_name);
-    let working_directory: String = String::from("C:\\ProgramaHipotecas\\"); 
-    println!("{}", working_directory);
+    // println!("{}", worksheet_file_name);
+    
+    //let working_directory: String = String::from("C:\\ProgramaHipotecas\\");
+    let working_directory: String = String::from("C:\\ProgramaHipotecas\\");
+     
+    //println!("{}", working_directory);
     let filepath_cad: String =  working_directory + &worksheet_file_name;
-    println!("{}", filepath_cad);
+    //println!("{}", filepath_cad);
     let path = std::path::Path::new(&filepath_cad);
     let book: Spreadsheet = reader::xlsx::read(path).unwrap();
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
     let mut h = read_data_from_excel_file(worksheet);
-    println!("Leídos datos");
+    //println!("Leídos datos");
     h.tabla_amort_impago = h.calcula_tabla_impago();
 
     print_csv_files(&h);    
@@ -45,11 +48,6 @@ fn main() -> Result<()>{
     Ok(())
 }
 
-fn date_to_string(date: Date<Utc>) -> String {
-    let fecha = date.day().to_string() + "/" + &date.month().to_string() + &"/" +
-        &date.year().to_string();
-    fecha
-}
 
 fn print_csv_files(h: &Hipoteca) {
     let filename = h.nombre_operacion.clone();
@@ -80,7 +78,7 @@ fn print_csv_files(h: &Hipoteca) {
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let nombre = read_string(worksheet, "C5");
     let fecha = read_fecha(worksheet, "C6");    
-    let meses_primera_cuota = read_i32(worksheet, "C7");
+    let _meses_primera_cuota = read_i32(worksheet, "C7"); // Pendiente implementación
     let capital = read_f64(worksheet, "C8");
     let tipo = redondea_cinco_decimales(read_f64(worksheet, "C9")/100.0);
     let meses = read_i32(worksheet, "C10");
@@ -121,10 +119,19 @@ fn read_fecha(worksheet: &Worksheet, coordinate: &str) -> Date<Utc> {
     let fecha_2 = Utc.ymd(fecha.year(), fecha.month(), fecha.day());
     fecha_2
 }
+
+/// Se utiliza para parar el programa en la terminal antes de volver a excel 
+#[allow(dead_code)]
 fn wait() {
-    let mut nombre = String::new();
-    println!("Nombre: ");
-    let result = io::stdin().read_line(&mut nombre);
+    let mut stdin = io::stdin();
+    let mut stdout = io::stdout();
+
+    // We want the cursor to stay at the end of the line, so we print without a newline and flush manually.
+    write!(stdout, "Press any key to continue...").unwrap();
+    stdout.flush().unwrap();
+
+    // Read a single byte and discard
+    let _ = stdin.read(&mut [0u8]).unwrap();
 }
 
 #[cfg(test)]

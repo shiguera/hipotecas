@@ -1,7 +1,7 @@
-use super::{cuota::Cuota, hipoteca::Hipoteca};
-use chrono::prelude::*;
+use super::{cuota::Cuota};
+//use chrono::prelude::*;
 use std::fs::File;
-use std::io::{Write, Result};
+use std::io::{Write};
 
 
 pub struct TablaAmortizacion {
@@ -18,6 +18,7 @@ impl TablaAmortizacion {
     pub fn push(&mut self, cuota: Cuota) {
         self.cuotas.push(cuota);
     }
+    #[allow(dead_code)]
     pub fn disp(&self) {
         for i in 0..self.len() {
             let cuota = &self.cuotas[i];
@@ -42,6 +43,9 @@ impl TablaAmortizacion {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::prelude::*;
+    use std::io::Result;
+    use crate::libs::hipoteca::Hipoteca;
 
     #[test]
     fn test_new() {
