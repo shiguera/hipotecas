@@ -38,7 +38,9 @@ fn main() -> Result<()>{
     let mut h = read_data_from_excel_file(worksheet);
     
     //println!("Leídos datos");
-    h.tabla_amort_impago = h.calcula_tabla_impago();
+    if h.fecha_impago.is_some() {
+        h.tabla_amort_impago = h.calcula_tabla_impago();
+    }
 
     print_csv_files(&h);   
     
@@ -60,6 +62,7 @@ fn print_csv_files(h: &Hipoteca) {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización inicial");
         println!("{:?}", result);
     }
+    wait();
     let filename = h.nombre_operacion.clone() + "_euribor";
     let result = h.tabla_amort_con_actualizacion_euribor.print(&filename);
     if result.is_ok() {
@@ -68,13 +71,16 @@ fn print_csv_files(h: &Hipoteca) {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
     }
-    let filename = h.nombre_operacion.clone() + "_impago";
-    let result = h.tabla_amort_impago.print(&filename);
-    if result.is_ok() {
-        println!("El fichero con la tabla de impagos euribor se escribió en {}", h.nombre_operacion.clone()+"_impago.txt" );
-    } else {
-        println!("Se produjeron errores al escribir el fichero con la tabla de impagos");
-        println!("{:?}", result);
+    wait();
+    if h.fecha_impago.is_some() {
+        let filename = h.nombre_operacion.clone() + "_impago";
+        let result = h.tabla_amort_impago.print(&filename);
+        if result.is_ok() {
+            println!("El fichero con la tabla de impagos euribor se escribió en {}", h.nombre_operacion.clone()+"_impago.txt" );
+        } else {
+            println!("Se produjeron errores al escribir el fichero con la tabla de impagos");
+            println!("{:?}", result);
+        }
     }
 }
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
