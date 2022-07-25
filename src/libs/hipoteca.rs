@@ -32,9 +32,9 @@ pub struct Hipoteca {
     /// Tipo máximo establecido en las cláusulas de la hipoteca
     pub i_max: f64, 
     /// Fecha en la que se produjo el impago
-    pub fecha_impago: Date<Utc>,
+    pub fecha_impago: Option<Date<Utc>>,
     /// Fecha en la que se produjo la resolución del contrato
-    pub fecha_resolucion: Date<Utc>,
+    pub fecha_resolucion: Option<Date<Utc>>,
     /// Novaciones: lista de novaciones y ampliaciones
     pub novaciones: Vec<Novacion>,
     /// Tabla de amortización completa, pero con todas
@@ -51,7 +51,7 @@ impl Hipoteca {
     pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, capital_prestado: f64, 
             tipo_interes_anual: f64, meses: i32, meses_hasta_primera_revision: i32, 
             intervalo_revisiones: i32, incremento_euribor: f64, 
-            i_min: f64, i_max: f64, fecha_impago:Date<Utc>, fecha_resolucion:Date<Utc>) -> Self {
+            i_min: f64, i_max: f64, fecha_impago:Option<Date<Utc>>, fecha_resolucion:Option<Date<Utc>>) -> Self {
         let mut h = Hipoteca { 
             nombre_operacion,
             fecha_escritura, 
@@ -176,19 +176,22 @@ impl Hipoteca {
     /// impago hasta la fecha de resolución de la hipoteca
     pub fn calcula_tabla_impago(&mut self) -> TablaAmortizacion  {
         let mut t  =  TablaAmortizacion::new();
-        println!("tabla_amort:{}", self.tabla_amort_con_actualizacion_euribor.cuotas.len());
+        if self.fecha_impago.is_none() {
+            return t
+        }
         let _cuotas_impago = self.tabla_amort_con_actualizacion_euribor
             .cuotas.iter()
-            .filter(|x| x.fecha>=self.fecha_impago && x.fecha<=self.fecha_resolucion)
+            .filter(|x| x.fecha>=self.fecha_impago.unwrap() && 
+                x.fecha<=self.fecha_resolucion.unwrap())
             .for_each(|x| t.cuotas.push(x.clone()));
         //println!("impagos:{}", t.cuotas.len());
         let ultima_cuota: &Cuota = t.cuotas.last().unwrap();
-        if ultima_cuota.fecha < self.fecha_resolucion {
+        if ultima_cuota.fecha < self.fecha_resolucion.unwrap() {
             let cap_pdte = ultima_cuota.cap_pendiente_despues();
-            let dias = (self.fecha_resolucion - ultima_cuota.fecha).num_days();
+            let dias = (self.fecha_resolucion.unwrap() - ultima_cuota.fecha).num_days();
             let intereses = redondea_dos_decimales(cap_pdte * dias as f64 * ultima_cuota.i / 365.0);
             let cuota_total = cap_pdte + intereses;
-            let cuota = Cuota::new(self.fecha_resolucion, ultima_cuota.i,ultima_cuota.meses_restantes_antes,
+            let cuota = Cuota::new(self.fecha_resolucion.unwrap(), ultima_cuota.i,ultima_cuota.meses_restantes_antes,
                 cap_pdte, cuota_total, cap_pdte, intereses);
             t.push(cuota);
         }
@@ -217,8 +220,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
         h1.tabla_amort_impago = h1.calcula_tabla_impago();
         h1.tabla_amort_impago.disp();
     }
@@ -228,8 +231,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let _h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
     }
     #[test]
     fn test_importe_cuota_mensual() {
@@ -242,8 +245,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
         h1.tabla_amort_sin_actualizacion = h1.calcula_tabla_amort_sin_actualizacion();
         assert_eq!(300, h1.tabla_amort_sin_actualizacion.len());
         let cuota: &Cuota = &h1.tabla_amort_sin_actualizacion.cuotas[0];
@@ -276,8 +279,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
         h1.tabla_amort_sin_actualizacion = h1.calcula_amort_primer_periodo();
         assert_eq!(6, h1.tabla_amort_sin_actualizacion.len());
         let cuota: &Cuota = &h1.tabla_amort_sin_actualizacion.cuotas[0];
@@ -304,8 +307,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));        
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));        
         h1.tabla_amort_con_actualizacion_euribor = h1.calcula_tabla_amort_con_actualizacion_euribor();
         h1.tabla_amort_con_actualizacion_euribor.disp();
     }

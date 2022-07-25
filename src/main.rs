@@ -13,6 +13,7 @@ use std::env::args;
 
 
 use umya_spreadsheet::*;
+use umya_spreadsheet::reader::xlsx::XlsxError;
 use umya_spreadsheet::helper::date::{excel_to_date_time_object, CALENDAR_WINDOWS_1900};
 use std::ops::Deref;
 
@@ -42,7 +43,7 @@ fn main() -> Result<()>{
     print_csv_files(&h);   
     
     // let _ = umya_spreadsheet::writer::xlsx::write(&book, path);
-    //wait();
+    wait();
         
 
     Ok(())
@@ -77,48 +78,55 @@ fn print_csv_files(h: &Hipoteca) {
     }
 }
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
-    let nombre = read_string(worksheet, "C5");
-    let fecha = read_fecha(worksheet, "C6");    
-    let _meses_primera_cuota = read_i32(worksheet, "C7"); // Pendiente implementación
-    let capital = read_f64(worksheet, "C8");
-    let tipo = redondea_cinco_decimales(read_f64(worksheet, "C9")/100.0);
-    let meses = read_i32(worksheet, "C10");
-    let meses_primera_revision = read_i32(worksheet, "C11");
-    let intervalo_revisiones = read_i32(worksheet, "C12");
-    let incremento_euribor = redondea_cinco_decimales(read_f64(worksheet, "C13")/100.0);
-    let i_min = redondea_cinco_decimales(read_f64(worksheet, "C14")/100.0);
-    let i_max = redondea_cinco_decimales(read_f64(worksheet, "C15")/100.0);
-    let fecha_impago: Date<Utc> = read_fecha(worksheet, "C16");
-    let fecha_resolucion: Date<Utc> = read_fecha(worksheet, "C17");     
+    let nombre = read_string(worksheet, "C7");
+    let fecha = read_fecha(worksheet, "C8");    
+    let _meses_primera_cuota = read_i32(worksheet, "C9"); // Pendiente implementación
+    let capital = read_f64(worksheet, "C10");
+    let tipo = redondea_cinco_decimales(read_f64(worksheet, "C11")/100.0);
+    let meses = read_i32(worksheet, "C12");
+    let meses_primera_revision = read_i32(worksheet, "C13");
+    let intervalo_revisiones = read_i32(worksheet, "C14");
+    let incremento_euribor = redondea_cinco_decimales(read_f64(worksheet, "C15")/100.0);
+    let i_min = redondea_cinco_decimales(read_f64(worksheet, "C16")/100.0);
+    let i_max = redondea_cinco_decimales(read_f64(worksheet, "C17")/100.0);
+    let fecha_impago: Option<Date<Utc>> = read_fecha(worksheet, "C18");
+    let fecha_resolucion: Option<Date<Utc>> = read_fecha(worksheet, "C19");     
     
-    let h = Hipoteca::new(nombre, fecha,
+    let h = Hipoteca::new(nombre, fecha.unwrap(),
                 capital, tipo, meses, 
                 meses_primera_revision, intervalo_revisiones,
                 incremento_euribor, i_min, i_max, fecha_impago, fecha_resolucion);
-    println!("{} {}", h.fecha_impago, h.fecha_resolucion);
+    //println!("{} {}", h.fecha_impago.unwrap(), h.fecha_resolucion.unwrap());
     h
 }
 fn read_string(worksheet: &Worksheet, coordinate: &str) -> String {
-    worksheet.get_cell(coordinate).unwrap().get_value().deref().to_owned()
+    worksheet.get_value(coordinate)
 }
 fn read_i32(worksheet: &Worksheet, coordinate: &str) -> i32 {
-    let cad = worksheet.get_cell(coordinate).unwrap().get_value().deref().to_owned();
+    let cad = worksheet.get_value(coordinate);
     let cap: i32 = cad.parse().unwrap();
     cap    
 }
 fn read_f64(worksheet: &Worksheet, coordinate: &str) -> f64 {
-    let cad = worksheet.get_cell(coordinate).unwrap().get_value().deref().to_owned();
+    let cad = worksheet.get_value(coordinate);
     let cap: f64 = cad.parse().unwrap();
     cap    
 }
-fn read_fecha(worksheet: &Worksheet, coordinate: &str) -> Date<Utc> {
-    let cell = worksheet.get_cell(coordinate).unwrap();
-    let fecha_excel = cell.get_value().deref().to_owned();
-    let fecha_f64 = fecha_excel.parse().unwrap();
-    let fecha = excel_to_date_time_object(&fecha_f64,
-         Some(CALENDAR_WINDOWS_1900.to_owned()));
-    let fecha_2 = Utc.ymd(fecha.year(), fecha.month(), fecha.day());
-    fecha_2
+fn read_fecha(worksheet: &Worksheet, coordinate: &str) -> Option<Date<Utc>> {
+    let cell_value = worksheet.get_value(coordinate);
+    let fecha_as_f64 = cell_value.parse::<f64>();
+    let fecha: Option<Date<Utc>>;
+    match fecha_as_f64 {
+        Ok(date) => {
+            let naive_fecha = 
+                excel_to_date_time_object(&date, 
+                Some(CALENDAR_WINDOWS_1900.to_owned()));
+            //println!("{}", naive_fecha.to_string());
+            fecha = Some(Utc.ymd(naive_fecha.year(), naive_fecha.month(), naive_fecha.day()));
+        },
+        _ => fecha = None
+    }
+    fecha
 }
 
 /// Se utiliza para parar el programa en la terminal antes de volver a excel 
@@ -147,7 +155,7 @@ mod tests {
         let h = read_data_from_excel_file(worksheet);
         println!("Leídos datos");
         assert_eq!("Libro11", h.nombre_operacion);
-        assert_eq!(Utc.ymd(2004, 2, 17), h.fecha_escritura);
+        assert_eq!(Utc.ymd(2007, 2, 17), h.fecha_escritura);
         assert_eq!(84140.0, h.capital_prestado);
         assert_eq!(0.04, h.tipo_interes_anual);
         assert_eq!(300, h.meses);
@@ -156,8 +164,8 @@ mod tests {
         assert_eq!(0.01, h.incremento_euribor);
         assert_eq!(0.04, h.i_min);
         assert_eq!(0.12, h.i_max);
-        assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago);
-        assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion);
+        assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago.unwrap());
+        assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion.unwrap());
 
         //h.tabla_amort_impago = h.calcula_tabla_impago();
     
@@ -169,22 +177,23 @@ mod tests {
         let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
         
         let h = read_data_from_excel_file(worksheet);
-        println!("Leídos datos");
-        assert_eq!("Libro11", h.nombre_operacion);
-        assert_eq!(Utc.ymd(2004, 2, 17), h.fecha_escritura);
-        assert_eq!(84140.0, h.capital_prestado);
-        assert_eq!(0.04, h.tipo_interes_anual);
-        assert_eq!(300, h.meses);
-        assert_eq!(6, h.meses_hasta_primera_revision);
-        assert_eq!(12, h.intervalo_revisiones);
-        assert_eq!(0.01, h.incremento_euribor);
-        assert_eq!(0.04, h.i_min);
-        assert_eq!(0.12, h.i_max);
-        println!("Fecha impago:{}", h.fecha_impago);
-        //assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago);
-        //assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion);
+        assert!(h.fecha_impago.is_none());
+        assert!(h.fecha_resolucion.is_none());    
+    }
 
-        //h.tabla_amort_impago = h.calcula_tabla_impago();
-    
+    #[test]
+    fn test_read_fecha() {
+        let path = std::path::Path::new("assets\\libro12.xlsx");
+        let book: core::result::Result<Spreadsheet, XlsxError> = reader::xlsx::read(path);
+        match book {
+            Ok(spreadsheet) => {
+                let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
+                let fecha = read_fecha(worksheet, "C8");
+                assert_eq!(Utc.ymd(2007, 02, 17), fecha.unwrap());
+                let bad_fecha = read_fecha(worksheet, "D8");
+                assert!(bad_fecha.is_none());
+            }
+            _ => panic!("No se pudo leer la hoja de cálculo")
+        }
     }
 }

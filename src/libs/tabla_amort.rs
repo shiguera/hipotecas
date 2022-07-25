@@ -83,8 +83,8 @@ mod tests {
         let fecha = Utc.ymd(2004,3,17);
         let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
             300,6,12,0.01, 
-            0.04, 0.12, Utc.ymd(2018, 5, 17),
-            Utc.ymd(2022, 8, 5));        
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));        
         h1.tabla_amort_sin_actualizacion = h1.calcula_tabla_amort_sin_actualizacion();
         h1.tabla_amort_con_actualizacion_euribor = h1.calcula_tabla_amort_con_actualizacion_euribor();
         h1.tabla_amort_sin_actualizacion.print(&h1.nombre_operacion.clone())?;
