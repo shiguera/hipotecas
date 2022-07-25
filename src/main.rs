@@ -19,12 +19,13 @@ use std::ops::Deref;
 fn main() -> Result<()>{
     if args().len() != 2 {
         println!("ERROR DE EJECUCIÓN");
+        wait();
     }
     let worksheet_file_name: String = args().last().unwrap();
     // println!("{}", worksheet_file_name);
     
     //let working_directory: String = String::from("C:\\ProgramaHipotecas\\");
-    let working_directory: String = String::from("C:\\ProgramaHipotecas\\");
+    let working_directory: String = String::from("C:\\Users\\profesor\\rustprj\\hipotecas\\target\\debug\\");
      
     //println!("{}", working_directory);
     let filepath_cad: String =  working_directory + &worksheet_file_name;
@@ -37,9 +38,7 @@ fn main() -> Result<()>{
     //println!("Leídos datos");
     h.tabla_amort_impago = h.calcula_tabla_impago();
 
-    print_csv_files(&h);    
-
-
+    print_csv_files(&h);   
     
     // let _ = umya_spreadsheet::writer::xlsx::write(&book, path);
     //wait();
@@ -51,6 +50,7 @@ fn main() -> Result<()>{
 
 fn print_csv_files(h: &Hipoteca) {
     let filename = h.nombre_operacion.clone();
+    println!("{}", filename);
     let result = h.tabla_amort_sin_actualizacion.print(&filename);
     if result.is_ok() {
         println!("El fichero con la tabla de amortización inicial se escribió en {}", h.nombre_operacion.clone()+".txt" );
