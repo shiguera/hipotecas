@@ -35,6 +35,7 @@ fn main() -> Result<()>{
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
     let mut h = read_data_from_excel_file(worksheet);
+    
     //println!("Leídos datos");
     h.tabla_amort_impago = h.calcula_tabla_impago();
 
@@ -143,7 +144,7 @@ mod tests {
         let book: Spreadsheet = reader::xlsx::read(path).unwrap();
         let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
         
-        let mut h = read_data_from_excel_file(worksheet);
+        let h = read_data_from_excel_file(worksheet);
         println!("Leídos datos");
         assert_eq!("Libro11", h.nombre_operacion);
         assert_eq!(Utc.ymd(2004, 2, 17), h.fecha_escritura);
@@ -157,6 +158,31 @@ mod tests {
         assert_eq!(0.12, h.i_max);
         assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago);
         assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion);
+
+        //h.tabla_amort_impago = h.calcula_tabla_impago();
+    
+    }
+    #[test]
+    fn test_read_data_from_excel_file_sin_impago() {
+        let path = std::path::Path::new("assets\\Libro12.xlsx");
+        let book: Spreadsheet = reader::xlsx::read(path).unwrap();
+        let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
+        
+        let h = read_data_from_excel_file(worksheet);
+        println!("Leídos datos");
+        assert_eq!("Libro11", h.nombre_operacion);
+        assert_eq!(Utc.ymd(2004, 2, 17), h.fecha_escritura);
+        assert_eq!(84140.0, h.capital_prestado);
+        assert_eq!(0.04, h.tipo_interes_anual);
+        assert_eq!(300, h.meses);
+        assert_eq!(6, h.meses_hasta_primera_revision);
+        assert_eq!(12, h.intervalo_revisiones);
+        assert_eq!(0.01, h.incremento_euribor);
+        assert_eq!(0.04, h.i_min);
+        assert_eq!(0.12, h.i_max);
+        println!("Fecha impago:{}", h.fecha_impago);
+        //assert_eq!(Utc.ymd(2018, 5, 17), h.fecha_impago);
+        //assert_eq!(Utc.ymd(2022, 8, 5), h.fecha_resolucion);
 
         //h.tabla_amort_impago = h.calcula_tabla_impago();
     

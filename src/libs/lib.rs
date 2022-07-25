@@ -221,7 +221,6 @@ mod tests {
         let meses = 300;
         assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
     }
-    #[test]
    
     #[test]
     fn test_mensualidad() {
