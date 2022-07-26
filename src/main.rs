@@ -1,21 +1,22 @@
 mod libs;
 
+//use std::error::Error;
 use std::io;
 use std::io::{prelude::*, Result};
-
 use chrono::prelude::*;
 use chrono::Utc;
-use libs::hipoteca::*;
+use libs::novacion::Novacion;
+use libs::{hipoteca::*, novacion::*};
 use libs::lib::*;
 // use colored::*;
-
 use std::env::args;
-
-
 use umya_spreadsheet::*;
 use umya_spreadsheet::reader::xlsx::XlsxError;
 use umya_spreadsheet::helper::date::{excel_to_date_time_object, CALENDAR_WINDOWS_1900};
-use std::ops::Deref;
+//use std::ops::Deref;
+
+/// Número máximo de novaciones que se leerán de la hoja de cálculo
+const MAX_NOVACIONES: i32 = 5;
 
 fn main() -> Result<()>{
     if args().len() != 2 {
@@ -98,13 +99,30 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let fecha_impago: Option<Date<Utc>> = read_fecha(worksheet, "C18");
     let fecha_resolucion: Option<Date<Utc>> = read_fecha(worksheet, "C19");     
     
-    let h = Hipoteca::new(nombre, fecha.unwrap(),
+    let mut h = Hipoteca::new(nombre, fecha.unwrap(),
                 capital, tipo, meses, 
                 meses_primera_revision, intervalo_revisiones,
                 incremento_euribor, i_min, i_max, fecha_impago, fecha_resolucion);
-    //println!("{} {}", h.fecha_impago.unwrap(), h.fecha_resolucion.unwrap());
+    h.novaciones = read_novaciones(worksheet);
     h
 }
+
+fn read_novaciones(worksheet: &Worksheet) -> Vec<Novacion> {
+    let mut novaciones = Vec::<Novacion>::new();
+    let row: u32 = 28; // Primera fila de datos de las novaciones en la hoja de cálculo
+    let mut col: u32 = 3; // Primera columna de datos de las novaciones en la hoja de cálculo
+    for _i in 0..MAX_NOVACIONES {
+        let fecha: Option<Date<Utc>> = read_fecha_by_column_and_row(worksheet, &col, &row);
+        if fecha.is_some() {
+            let incremento_capital = read_f64_by_column_and_row(worksheet, &col, &(row+1));
+            let novacion: Novacion = Novacion::new(fecha.unwrap(), incremento_capital);
+            novaciones.push(novacion);
+        }
+        col += 1;
+    }
+    novaciones
+}
+
 fn read_string(worksheet: &Worksheet, coordinate: &str) -> String {
     worksheet.get_value(coordinate)
 }
@@ -114,12 +132,39 @@ fn read_i32(worksheet: &Worksheet, coordinate: &str) -> i32 {
     cap    
 }
 fn read_f64(worksheet: &Worksheet, coordinate: &str) -> f64 {
-    let cad = worksheet.get_value(coordinate);
-    let cap: f64 = cad.parse().unwrap();
-    cap    
+    let cad: String = worksheet.get_value(coordinate);
+    let cap = cad.parse();
+    match cap {
+        Ok(number) => number,
+        _ => 0.0,
+    }
+}
+fn read_f64_by_column_and_row(worksheet: &Worksheet, col: &u32, row: &u32) -> f64 {
+    let cad: String = worksheet.get_value_by_column_and_row(col, row);
+    let cap = cad.parse();
+    match cap {
+        Ok(number) => number,
+        _ => 0.0,
+    }
 }
 fn read_fecha(worksheet: &Worksheet, coordinate: &str) -> Option<Date<Utc>> {
     let cell_value = worksheet.get_value(coordinate);
+    let fecha_as_f64 = cell_value.parse::<f64>();
+    let fecha: Option<Date<Utc>>;
+    match fecha_as_f64 {
+        Ok(date) => {
+            let naive_fecha = 
+                excel_to_date_time_object(&date, 
+                Some(CALENDAR_WINDOWS_1900.to_owned()));
+            //println!("{}", naive_fecha.to_string());
+            fecha = Some(Utc.ymd(naive_fecha.year(), naive_fecha.month(), naive_fecha.day()));
+        },
+        _ => fecha = None
+    }
+    fecha
+}
+fn read_fecha_by_column_and_row(worksheet: &Worksheet, col: &u32, row: &u32) -> Option<Date<Utc>> {
+    let cell_value = worksheet.get_value_by_column_and_row(col, row);
     let fecha_as_f64 = cell_value.parse::<f64>();
     let fecha: Option<Date<Utc>>;
     match fecha_as_f64 {
@@ -149,9 +194,23 @@ fn wait() {
     let _ = stdin.read(&mut [0u8]).unwrap();
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn test_read_novaciones() {
+        let path = std::path::Path::new("assets\\Libro12.xlsx");
+        let book: Spreadsheet = reader::xlsx::read(path).unwrap();
+        let worksheet: &Worksheet = book.get_sheet(&0).unwrap(); 
+        let h = read_data_from_excel_file(worksheet);
+
+        assert_eq!(2, h.novaciones.len());
+        assert_eq!(Utc.ymd(2011, 11, 5), h.novaciones[0].fecha_novacion);
+        assert_eq!(20000.0, h.novaciones[0].incremento_capital);
+        assert_eq!(Utc.ymd(2021, 12, 16), h.novaciones[1].fecha_novacion);
+        assert_eq!(32500.0, h.novaciones[1].incremento_capital);
+    }
     #[test]
     fn test_read_data_from_excel_file() {
         let path = std::path::Path::new("assets\\Libro11.xlsx");
@@ -198,6 +257,52 @@ mod tests {
                 assert_eq!(Utc.ymd(2007, 02, 17), fecha.unwrap());
                 let bad_fecha = read_fecha(worksheet, "D8");
                 assert!(bad_fecha.is_none());
+            }
+            _ => panic!("No se pudo leer la hoja de cálculo")
+        }
+    }
+    #[test]
+    fn test_read_fecha_by_column_and_row() {
+        let path = std::path::Path::new("assets\\libro12.xlsx");
+        let book: core::result::Result<Spreadsheet, XlsxError> = reader::xlsx::read(path);
+        match book {
+            Ok(spreadsheet) => {
+                let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
+                let fecha = read_fecha_by_column_and_row(worksheet, &3, &8);
+                assert_eq!(Utc.ymd(2007, 02, 17), fecha.unwrap());
+                let bad_fecha = read_fecha_by_column_and_row(worksheet, &4, &8);
+                assert!(bad_fecha.is_none());
+            }
+            _ => panic!("No se pudo leer la hoja de cálculo")
+        }
+    }
+
+    #[test]
+    fn test_read_f64() {
+        let path = std::path::Path::new("assets\\libro12.xlsx");
+        let book: core::result::Result<Spreadsheet, XlsxError> = reader::xlsx::read(path);
+        match book {
+            Ok(spreadsheet) => {
+                let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
+                let cap = read_f64(worksheet, "C10");
+                assert_eq!(84140.0, cap);
+                let bad_cap = read_f64(worksheet, "B2");
+                assert_eq!(0.0, bad_cap);
+            }
+            _ => panic!("No se pudo leer la hoja de cálculo")
+        }
+    }
+    #[test]
+    fn test_read_f64_by_column_and_row() {
+        let path = std::path::Path::new("assets\\libro12.xlsx");
+        let book: core::result::Result<Spreadsheet, XlsxError> = reader::xlsx::read(path);
+        match book {
+            Ok(spreadsheet) => {
+                let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
+                let cap = read_f64_by_column_and_row(worksheet, &3, &10);
+                assert_eq!(84140.0, cap);
+                let bad_cap = read_f64_by_column_and_row(worksheet, &2, &2);
+                assert_eq!(0.0, bad_cap);
             }
             _ => panic!("No se pudo leer la hoja de cálculo")
         }

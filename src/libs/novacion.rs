@@ -2,13 +2,13 @@ use chrono::prelude::*;
 
 
 pub struct Novacion {
-    fecha_novacion: Date<Utc>,
-    incremento_capital: f64,
+    pub fecha_novacion: Date<Utc>,
+    pub incremento_capital: f64,
 
 }
 
 impl Novacion {
-    fn new(fecha_novacion: Date<Utc>, incremento_capital: f64) -> Self {
+    pub fn new(fecha_novacion: Date<Utc>, incremento_capital: f64) -> Self {
         Novacion {fecha_novacion, incremento_capital}
     }
 }
