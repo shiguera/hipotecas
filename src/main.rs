@@ -38,6 +38,8 @@ fn main() -> Result<()>{
     
     let mut h = read_data_from_excel_file(worksheet);
     
+    h.calcula_novaciones();
+    
     //println!("Leídos datos");
     if h.fecha_impago.is_some() {
         h.tabla_amort_impago = h.calcula_tabla_impago();

@@ -53,12 +53,12 @@ pub fn last_day_of_month(year: i32, month: u32) -> u32 {
 }
 
 /// Importe cuotas para un préstamo con el método de amortización francés
-#[allow(dead_code)]
-pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
-    let i_mensual: f64 = i_anual/12.0;
-    let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
-    redondea_dos_decimales(a)
-}
+// #[allow(dead_code)]
+// pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
+//     let i_mensual: f64 = i_anual/12.0;
+//     let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
+//     redondea_dos_decimales(a)
+// }
 
 /// Calcula el importe mensual a pagar en un prestamo 
 /// con el método de amortización francés (cuotas mensuales iguales)
@@ -222,13 +222,13 @@ mod tests {
         assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
     }
    
-    #[test]
-    fn test_mensualidad() {
-        let c_0: f64 = 84140.0;
-        let i_anual: f64 = 0.04;
-        let meses: i32 = 300;
-        assert_eq!(444.12, mensualidad(c_0, i_anual, meses));
-    }
+    // #[test]
+    // fn test_mensualidad() {
+    //     let c_0: f64 = 84140.0;
+    //     let i_anual: f64 = 0.04;
+    //     let meses: i32 = 300;
+    //     assert_eq!(444.12, mensualidad(c_0, i_anual, meses));
+    // }
     #[test]
     fn test_redondea_dos_decimales() {
         let x: f64 = 1324.7856;

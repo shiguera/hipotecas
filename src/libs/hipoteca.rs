@@ -27,6 +27,8 @@ pub struct Hipoteca {
     pub intervalo_revisiones: i32,
     /// Incremento aplicado sobre el euribor en las revisiones 
     pub incremento_euribor: f64, 
+    /// Fechas en las que se deben producir las revisiones
+    pub fechas_revisiones: Vec<Date<Utc>>,
     /// Tipo mínimo establecido en las cláusulas de la hipoteca
     pub i_min: f64, 
     /// Tipo máximo establecido en las cláusulas de la hipoteca
@@ -62,6 +64,7 @@ impl Hipoteca {
             meses_hasta_primera_revision, 
             intervalo_revisiones,  
             incremento_euribor, 
+            fechas_revisiones: Vec::<Date<Utc>>::new(), 
             i_min, 
             i_max, 
             fecha_impago,
@@ -172,6 +175,45 @@ impl Hipoteca {
         tabla
     }
 
+    /// Calcula novaciones
+    pub fn calcula_novaciones(&mut self) {
+        if self.novaciones.len() > 0 {
+            for i in 0..self.novaciones.len() {
+                //let &novacion = self.novaciones[i];
+                //self.calcula_novacion(novacion);
+            }
+        }
+    }
+    fn calcula_novacion(&mut self, novacion: Novacion) {
+        // Tabla de cuotas hasta la fecha de la novación
+        let mut tabla_antes: TablaAmortizacion = TablaAmortizacion::new();
+        self.tabla_amort_con_actualizacion_euribor.cuotas
+            .iter()
+            .filter(|x| x.fecha <= novacion.fecha_novacion)
+            .for_each(|x| tabla_antes.push(x.clone()));
+        if tabla_antes.len() == 0 {
+            // Si no hay cuotas anteriores a la novación volver
+            return
+        }
+        // Tabla de las cuotas posteriores a la novación
+        let mut tabla_despues = TablaAmortizacion::new();
+        self.tabla_amort_con_actualizacion_euribor.cuotas
+            .iter()
+            .filter(|x| x.fecha > novacion.fecha_novacion)
+            .for_each(|x| tabla_despues.push(x.clone()));
+        if tabla_despues.len() == 0 {
+            // Si no hay cuotas posteriores a la novación volver
+            return
+        }
+        // Capital pendiente a partir de la fecha de la novación
+        let cap_pendiente = tabla_antes.cuotas.last().unwrap()
+            .cap_pendiente_despues() + novacion.incremento_capital;
+        //let meses_restantes = primera_cuota_tras_novacion.meses_restantes_antes;
+        // Recalcular la hipoteca como una nueva hipoteca en el periodo restante
+        //let nueva_h = Hipoteca::new("Nueva", )
+        
+
+    }
     /// Calcula la tabla de amortización desde el momento del 
     /// impago hasta la fecha de resolución de la hipoteca
     pub fn calcula_tabla_impago(&mut self) -> TablaAmortizacion  {
