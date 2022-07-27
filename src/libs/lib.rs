@@ -1,5 +1,8 @@
 use chrono::prelude::*;
 
+use super::tabla_amort::TablaAmortizacion;
+use super::cuota::Cuota;
+
 
 pub fn add_one_month(date: Date<Utc>) -> Date<Utc> {
     let agno: i32 = match date.month() {
@@ -52,14 +55,6 @@ pub fn last_day_of_month(year: i32, month: u32) -> u32 {
     }
 }
 
-/// Importe cuotas para un préstamo con el método de amortización francés
-// #[allow(dead_code)]
-// pub fn mensualidad(c_0: f64, i_anual: f64, meses: i32) -> f64 {
-//     let i_mensual: f64 = i_anual/12.0;
-//     let a: f64 = c_0 * i_mensual / (1.0 - (1.0+i_mensual).powi(-meses));
-//     redondea_dos_decimales(a)
-// }
-
 /// Calcula el importe mensual a pagar en un prestamo 
 /// con el método de amortización francés (cuotas mensuales iguales)
 pub fn importe_cuota_mensual(capital_pendiente:f64, tipo_interes_anual: f64, meses: i32 ) -> f64 {
@@ -91,9 +86,66 @@ pub fn date_to_string(date: Date<Utc>) -> String {
     fecha
 }
 
+/// Calcula la tabla de amortización correspondiente a un capital prestado
+/// a cierto número de meses con un tipo anual (método francés)
+/// 
+pub fn calcula_tabla_amortizacion(capital: f64, interes: f64, meses: i32, fecha_primera_cuota: Date<Utc>) ->
+    TablaAmortizacion {
+    
+    let mut tabla_result = TablaAmortizacion::new();
+
+    let mut fecha = fecha_primera_cuota;
+    let mut meses_restantes_antes: i32= meses;
+    let mut cap_pdte_antes: f64 = capital;
+    let cuota_total: f64 = importe_cuota_mensual(cap_pdte_antes, interes, meses);
+    for i in 0..meses {
+        let cuota_interes: f64 = intereses_mes(cap_pdte_antes, interes);
+        let cuota_capital = redondea_dos_decimales(cuota_total - cuota_interes);
+        let cuota: Cuota = Cuota::new(fecha, interes, meses_restantes_antes, 
+            cap_pdte_antes, cuota_total, cuota_capital, cuota_interes);
+        tabla_result.push(cuota);
+        fecha = add_one_month(fecha);
+        meses_restantes_antes -= 1;
+        cap_pdte_antes -= cuota_capital;
+    }
+
+    // Ajuste redondeo última cuota
+    if cap_pdte_antes != 0.0 {
+        let ult_cuota = tabla_result.cuotas.last_mut().unwrap();
+        ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + cap_pdte_antes);
+        ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + cap_pdte_antes);
+    } 
+    tabla_result
+}
+/// Recibe una tabla de cuotas y una lista de fechas y devuelve una TablaAmortizacion 
+/// con las cuotas actualizadas al euribor+incremento. 
+pub fn actualiza_euribor(tabla: TablaAmortizacion, 
+    fechas: Vec<Date<Utc>>, incremento_euribor: f64, i_min: f64, i_max: f64) -> TablaAmortizacion {
+    let tabla_result = TablaAmortizacion::new();
+
+    tabla_result
+}
 #[cfg(test)]
 mod tests {
+    use crate::libs::tabla_amort;
+
     use super::*;
+    #[test]
+    fn test_calcula_tabla_amortizacion() {
+        let capital: f64 = 10000.0;
+        let interes: f64 = 0.1;
+        let meses: i32 = 60;
+        let fecha_primera_cuota = Utc.ymd(2022, 5, 12);
+        let tabla_amort = calcula_tabla_amortizacion(capital, interes, meses, fecha_primera_cuota);
+        assert_eq!(60, tabla_amort.len());
+        tabla_amort.disp();
+    }   
+    #[test]
+    fn test_actualiza_euribor() {
+        let fechas = vec![Utc.ymd(2012, 5, 17), Utc.ymd(2012, 11, 17)];
+        let tabla = TablaAmortizacion::new();
+
+    }
     #[test]
     fn test_mes_anterior() {
         assert_eq!((2020, 2), mes_anterior(2020,3));
@@ -222,13 +274,6 @@ mod tests {
         assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
     }
    
-    // #[test]
-    // fn test_mensualidad() {
-    //     let c_0: f64 = 84140.0;
-    //     let i_anual: f64 = 0.04;
-    //     let meses: i32 = 300;
-    //     assert_eq!(444.12, mensualidad(c_0, i_anual, meses));
-    // }
     #[test]
     fn test_redondea_dos_decimales() {
         let x: f64 = 1324.7856;

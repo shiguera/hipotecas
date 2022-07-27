@@ -76,6 +76,7 @@ impl Hipoteca {
         };
         h.tabla_amort_sin_actualizacion = h.calcula_tabla_amort_sin_actualizacion();
         h.tabla_amort_con_actualizacion_euribor = h.calcula_tabla_amort_con_actualizacion_euribor();
+        //h.fechas_revisiones = h.calcula_fechas_revisiones();
         h        
     }
 
@@ -83,33 +84,13 @@ impl Hipoteca {
     /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
     /// de interés
     pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
-        let mut tabla : TablaAmortizacion = TablaAmortizacion::new();
-        let mut fecha: Date<Utc> = add_one_month(self.fecha_escritura);            
-        let cuota_total = importe_cuota_mensual(self.capital_prestado, self.tipo_interes_anual, self.meses);
-        let tipo_interes = self.tipo_interes_anual;
-        let mut meses_restantes_antes = self.meses;
-        let mut capital_pendiente_antes: f64 = self.capital_prestado;
-        for _i in 0..self.meses {
-            let cuota_interes = intereses_mes(capital_pendiente_antes, tipo_interes);
-            let cuota_capital = redondea_dos_decimales(cuota_total-cuota_interes);
-            let cuota: Cuota = Cuota::new(fecha, self.tipo_interes_anual, meses_restantes_antes,
-                capital_pendiente_antes,cuota_total, cuota_capital, cuota_interes);
-            tabla.push(cuota);
-
-            capital_pendiente_antes = redondea_dos_decimales(capital_pendiente_antes - cuota_capital);
-            fecha = add_one_month(fecha);
-            meses_restantes_antes -= 1;
-        }
-        // Ajuste de la ultima cuota por descuadres de redondeo
-        if capital_pendiente_antes != 0.0 {
-            let ult_cuota = tabla.cuotas.last_mut().unwrap();
-            //ult_cuota.cap_pendiente_antes += capital_pendiente_antes;
-            ult_cuota.cuota_total = redondea_dos_decimales(ult_cuota.cuota_total + capital_pendiente_antes);
-            ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + capital_pendiente_antes);
-        } 
-        tabla
+        let fecha_primera_cuota = add_one_month(self.fecha_escritura);
+        calcula_tabla_amortizacion(self.capital_prestado, self.tipo_interes_anual,
+            self.meses, fecha_primera_cuota)        
     }
+    fn calcula_fecha_revisiones(&self) {
 
+    }
     /// Calcula la tabla de amortización actualizando
     /// con el auribor en cada periodo
     pub fn calcula_tabla_amort_con_actualizacion_euribor(&mut self) -> TablaAmortizacion {
@@ -124,7 +105,8 @@ impl Hipoteca {
             // TODO Actualizar euribor + increm, imax, imin
             let tipo_interes = ed.actualiza_euribor(fecha_prox_vencim, 
                 self.incremento_euribor, self.i_min, self.i_max);
-            let cuota_total: f64 = importe_cuota_mensual(cap_pendiente_antes, tipo_interes, meses_restantes_antes); 
+            let cuota_total: f64 = importe_cuota_mensual(cap_pendiente_antes,
+                 tipo_interes, meses_restantes_antes); 
             for _i in 0..self.intervalo_revisiones {
                 let cuota_intereses = intereses_mes(cap_pendiente_antes, tipo_interes);
                 let cuota_capital = redondea_dos_decimales(cuota_total - cuota_intereses); 
@@ -174,6 +156,8 @@ impl Hipoteca {
         }
         tabla
     }
+    /// Rellena el vector de las fechas en las que se producirán las revisiones del euribor
+    
 
     /// Calcula novaciones
     pub fn calcula_novaciones(&mut self) {
@@ -289,7 +273,6 @@ mod tests {
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
-        h1.tabla_amort_sin_actualizacion = h1.calcula_tabla_amort_sin_actualizacion();
         assert_eq!(300, h1.tabla_amort_sin_actualizacion.len());
         let cuota: &Cuota = &h1.tabla_amort_sin_actualizacion.cuotas[0];
         assert_eq!(Utc.ymd(2004, 4, 17), cuota.fecha);
@@ -311,9 +294,10 @@ mod tests {
         assert_eq!(Utc.ymd(2029, 3, 17), cuota.fecha);
         assert_eq!(0.04, cuota.i);
         assert_eq!(1, cuota.meses_restantes_antes);
-        assert_eq!(445.12, cuota.cuota_total);
-        assert_eq!(443.64, cuota.cuota_capital);
+        assert_eq!(445.1, cuota.cuota_total);
+        assert_eq!(443.62, cuota.cuota_capital);
         assert_eq!(1.48, cuota.cuota_interes);
+        h1.tabla_amort_sin_actualizacion.disp();
     }
     #[test]
     fn test_calcula_amort_primer_periodo() {
@@ -351,7 +335,17 @@ mod tests {
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));        
-        h1.tabla_amort_con_actualizacion_euribor = h1.calcula_tabla_amort_con_actualizacion_euribor();
         h1.tabla_amort_con_actualizacion_euribor.disp();
+    }
+
+    #[test]
+    fn test_fecha_ult_vto() {
+        let nombre = String::from("Prueba");
+        let fecha = Utc.ymd(2004,3,17);
+        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+            300,6,12,0.01, 
+            0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
+        assert_eq!(Utc.ymd(2029, 3, 17), h1.fecha_ultimo_vencimiento);
     }
 }
