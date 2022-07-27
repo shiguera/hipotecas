@@ -81,7 +81,8 @@ mod tests {
     fn test_print() -> Result<()> {
         let nombre = String::from("h1");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha,
+            Utc.ymd(2004, 4, 17), 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));        

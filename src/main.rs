@@ -39,7 +39,7 @@ fn main() -> Result<()>{
     let mut h = read_data_from_excel_file(worksheet);
     
     h.calcula_novaciones();
-    
+
     //println!("Leídos datos");
     if h.fecha_impago.is_some() {
         h.tabla_amort_impago = h.calcula_tabla_impago();
@@ -89,7 +89,7 @@ fn print_csv_files(h: &Hipoteca) {
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let nombre = read_string(worksheet, "C7");
     let fecha = read_fecha(worksheet, "C8");    
-    let _meses_primera_cuota = read_i32(worksheet, "C9"); // Pendiente implementación
+    let fecha_primera_cuota = read_fecha(worksheet, "C9"); 
     let capital = read_f64(worksheet, "C10");
     let tipo = redondea_cinco_decimales(read_f64(worksheet, "C11")/100.0);
     let meses = read_i32(worksheet, "C12");
@@ -102,9 +102,9 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let fecha_resolucion: Option<Date<Utc>> = read_fecha(worksheet, "C19");     
     
     let mut h = Hipoteca::new(nombre, fecha.unwrap(),
-                capital, tipo, meses, 
-                meses_primera_revision, intervalo_revisiones,
-                incremento_euribor, i_min, i_max, fecha_impago, fecha_resolucion);
+        fecha_primera_cuota.unwrap(), capital, tipo, meses, 
+        meses_primera_revision, intervalo_revisiones,
+        incremento_euribor, i_min, i_max, fecha_impago, fecha_resolucion);
     h.novaciones = read_novaciones(worksheet);
     h
 }

@@ -12,6 +12,8 @@ pub struct Hipoteca {
     pub nombre_operacion: String, 
     /// Fecha inicial de la hipoteca establecida en la escritura
     pub fecha_escritura: Date<Utc>, 
+    /// Fecha de pago de la primera cuota
+    pub fecha_primera_cuota: Date<Utc>,
     /// Capital inicial prestado, según establece la escritura
     pub capital_prestado: f64, 
     /// Tipo de interés nominal anual establecido por la escritura
@@ -50,13 +52,15 @@ pub struct Hipoteca {
 impl Hipoteca {
         
     /// Crea una instancia de Hipoteca
-    pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, capital_prestado: f64, 
+    pub fn new(nombre_operacion: String, fecha_escritura: Date<Utc>, 
+            fecha_primera_cuota: Date<Utc>, capital_prestado: f64, 
             tipo_interes_anual: f64, meses: i32, meses_hasta_primera_revision: i32, 
             intervalo_revisiones: i32, incremento_euribor: f64, 
             i_min: f64, i_max: f64, fecha_impago:Option<Date<Utc>>, fecha_resolucion:Option<Date<Utc>>) -> Self {
         let mut h = Hipoteca { 
             nombre_operacion,
             fecha_escritura, 
+            fecha_primera_cuota,
             capital_prestado, 
             tipo_interes_anual,  
             meses, 
@@ -84,9 +88,8 @@ impl Hipoteca {
     /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
     /// de interés
     pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
-        let fecha_primera_cuota = add_one_month(self.fecha_escritura);
         calcula_tabla_amortizacion(self.capital_prestado, self.tipo_interes_anual,
-            self.meses, fecha_primera_cuota)        
+            self.meses, self.fecha_primera_cuota)        
     }
     fn calcula_fecha_revisiones(&self) {
 
@@ -244,7 +247,8 @@ mod tests {
     fn test_calcula_tabla_impago() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha, 
+            Utc.ymd(2004, 4, 17), 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
@@ -255,7 +259,8 @@ mod tests {
     fn test_hipoteca() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let _h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let _h1= Hipoteca::new(nombre, fecha, 
+            Utc.ymd(2004, 4, 17), 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
@@ -269,7 +274,9 @@ mod tests {
     fn test_calcula_tabla_amort_sin_actualizacion() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha,
+             Utc.ymd(2004, 4, 17), 84140.0, 
+             0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
@@ -303,7 +310,8 @@ mod tests {
     fn test_calcula_amort_primer_periodo() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha, 
+            Utc.ymd(2004, 4, 17), 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
@@ -331,7 +339,8 @@ mod tests {
     fn test_calcula_tabla_amort_con_actualizacion_euribor() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha, 
+            Utc.ymd(2004, 4, 17),   84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));        
@@ -342,7 +351,8 @@ mod tests {
     fn test_fecha_ult_vto() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 84140.0, 0.04,
+        let mut h1= Hipoteca::new(nombre, fecha,
+            Utc.ymd(2004, 04, 17), 84140.0, 0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));

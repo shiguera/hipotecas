@@ -44,7 +44,6 @@ pub fn mes_anterior(year: i32, month: u32) -> (i32, u32) {
 pub fn is_leap_year(year: i32) -> bool {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
 }
-/// Indica el número del último día de un mes
 #[allow(dead_code)]
 pub fn last_day_of_month(year: i32, month: u32) -> u32 {
     match month {
