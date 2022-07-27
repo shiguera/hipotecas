@@ -237,11 +237,16 @@ mod tests {
     
     #[test]
     fn test_pruebas() {
-        let d1 = Utc.ymd(2022, 5, 12);
-        let d2 = Utc.ymd(2021, 5, 12);
-        let x = (d1-d2).num_days();
-        println!("{}", x);
-        
+        let nombre = String::from("Prueba");
+        let fecha = Utc.ymd(2004,3,17);
+        let mut h1= Hipoteca::new(nombre, fecha, 
+            Utc.ymd(2004, 4, 17), 10000.0, 0.04,
+            5,1,2,0.00, 
+            0.00, 0.12, Some(Utc.ymd(2018, 5, 17)),
+            Some(Utc.ymd(2022, 8, 5)));
+        h1.tabla_amort_sin_actualizacion.disp();
+        h1.tabla_amort_con_actualizacion_euribor.disp();
+
     }
     #[test] 
     fn test_calcula_tabla_impago() {

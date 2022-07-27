@@ -25,7 +25,7 @@ pub struct Cuota {
 }
 impl Clone for Cuota {
     fn clone(&self) -> Self {
-        Cuota{fecha: self.fecha, i: self.i, meses_restantes_antes: self.meses_restantes_antes,
+        Cuota{fecha: self.fecha.clone(), i: self.i, meses_restantes_antes: self.meses_restantes_antes,
             cap_pendiente_antes: self.cap_pendiente_antes, cuota_total: self.cuota_total,
             cuota_capital: self.cuota_capital, cuota_interes: self.cuota_interes}
     }
