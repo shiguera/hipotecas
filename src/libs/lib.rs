@@ -137,7 +137,7 @@ mod tests {
         let fecha_primera_cuota = Utc.ymd(2022, 5, 12);
         let tabla_amort = calcula_tabla_amortizacion(capital, interes, meses, fecha_primera_cuota);
         assert_eq!(60, tabla_amort.len());
-        tabla_amort.disp();
+        //tabla_amort.disp();
     }   
     #[test]
     fn test_actualiza_euribor() {
@@ -271,6 +271,9 @@ mod tests {
         let fecha = Utc.ymd(2004, 3, 17);
         let meses = 300;
         assert_eq!(Utc.ymd(2029, 3, 17), add_n_months(fecha, meses));
+        let fecha = Utc.ymd(2004, 12, 17);
+        let meses = 3;
+        assert_eq!(Utc.ymd(2005, 3, 17), add_n_months(fecha, meses));
     }
    
     #[test]

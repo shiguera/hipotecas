@@ -110,7 +110,7 @@ mod tests {
     fn create_sample_table() -> TablaAmortizacion {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
-        let mut h1= Hipoteca::new(nombre, fecha, 
+        let h1= Hipoteca::new(nombre, fecha, 
             Utc.ymd(2004, 4, 17), 10000.0, 0.04,
             5,1,2,0.00, 
             0.00, 0.12, Some(Utc.ymd(2018, 5, 17)),
