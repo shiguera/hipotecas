@@ -16,6 +16,7 @@ impl Clone for TablaAmortizacion {
         tabla_result
     }
 }
+
 impl TablaAmortizacion {
     pub fn new() -> Self {
         TablaAmortizacion { cuotas: Vec::<Cuota>::new() }
@@ -43,8 +44,10 @@ impl TablaAmortizacion {
         }
         let cap_pdte = tabla_despues.cuotas[0].cap_pendiente_antes;
         let meses = tabla_despues.cuotas[0].meses_restantes_antes;
+        let fecha_prestamo = tabla_antes.cuotas.last().unwrap().fecha;
         let fecha_primera_cuota = tabla_despues.cuotas[0].fecha;
-        tabla_despues = calcula_tabla_amortizacion(cap_pdte, tipo_actualizado, meses, fecha_primera_cuota);
+        tabla_despues = calcula_tabla_amortizacion(fecha_prestamo, 
+            cap_pdte, tipo_actualizado, meses, fecha_primera_cuota);
         tabla_actualizada.push_tabla(&tabla_antes);
         tabla_actualizada.push_tabla(&tabla_despues);
         tabla_actualizada 

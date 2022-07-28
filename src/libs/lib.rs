@@ -67,6 +67,12 @@ pub fn importe_cuota_mensual(capital_pendiente:f64, tipo_interes_anual: f64, mes
 pub fn intereses_mes(capital_pendiente: f64, tipo_interes_anual: f64) -> f64 {
     redondea_dos_decimales(capital_pendiente*tipo_interes_anual/12.0)
 }
+pub fn intereses_dias(capital: f64, tipo_interes_anual: f64, dias: i32) -> f64 {
+    let dias_f = dias as f64;
+    let tipo_diario = tipo_interes_anual / 365.0;
+    let intereses = capital*tipo_diario * dias_f;
+    redondea_dos_decimales(intereses)
+}
 
 
 
@@ -88,26 +94,43 @@ pub fn date_to_string(date: Date<Utc>) -> String {
 /// Calcula la tabla de amortización correspondiente a un capital prestado
 /// a cierto número de meses con un tipo anual (método francés)
 /// 
-pub fn calcula_tabla_amortizacion(capital: f64, interes: f64, meses: i32, fecha_primera_cuota: Date<Utc>) ->
+pub fn calcula_tabla_amortizacion(fecha_prestamo: Date<Utc>, capital: f64, tipo_interes_anual: f64, 
+    meses: i32, fecha_primera_cuota: Date<Utc>) ->
     TablaAmortizacion {
     
     let mut tabla_result = TablaAmortizacion::new();
-
+    
+    // Cálculo de la primera cuota
     let mut fecha = fecha_primera_cuota;
-    let mut meses_restantes_antes: i32= meses;
+    let meses_primera_cuota = meses_primera_cuota(fecha_prestamo, fecha_primera_cuota);
+    println!("meses_primera_cuota:{}", meses_primera_cuota);
     let mut cap_pdte_antes: f64 = capital;
-    let cuota_total: f64 = importe_cuota_mensual(cap_pdte_antes, interes, meses);
-    for i in 0..meses {
-        let cuota_interes: f64 = intereses_mes(cap_pdte_antes, interes);
-        let cuota_capital = redondea_dos_decimales(cuota_total - cuota_interes);
-        let cuota: Cuota = Cuota::new(fecha, interes, meses_restantes_antes, 
+    let i_mensual: f64 = tipo_interes_anual / 12.0;
+    let meses_restantes_antes_1 = 
+        meses as f64 -1.0 + meses_primera_cuota;
+    println!("meses_restantes_antes_1:{}", meses_restantes_antes_1);    
+    let importe_mensualidad: f64 = redondea_dos_decimales(cap_pdte_antes * i_mensual /
+        (1.0 - (1.0+i_mensual).powf(-meses_restantes_antes_1)));
+    println!("importe_mensualidad:{}", importe_mensualidad);
+    let mut cuota_total = redondea_dos_decimales(importe_mensualidad * meses_primera_cuota);
+    let mut cuota_interes = redondea_dos_decimales(cap_pdte_antes * i_mensual * meses_primera_cuota);
+    let mut cuota_capital = redondea_dos_decimales(cuota_total - cuota_interes);
+    let mut meses_restantes_antes = meses;
+    let cuota = Cuota::new(fecha, tipo_interes_anual, meses_restantes_antes, 
+        cap_pdte_antes, cuota_total, cuota_capital, cuota_interes);
+    tabla_result.push(cuota);
+    cuota_total = importe_mensualidad;
+    for _i in 0..meses-1 {
+        fecha = add_one_month(fecha);
+        meses_restantes_antes -= 1; 
+        cap_pdte_antes = redondea_dos_decimales(cap_pdte_antes - cuota_capital);
+        cuota_interes = intereses_mes(cap_pdte_antes, tipo_interes_anual);
+        cuota_capital = redondea_dos_decimales(cuota_total - cuota_interes);
+        let cuota = Cuota::new(fecha, tipo_interes_anual, meses_restantes_antes, 
             cap_pdte_antes, cuota_total, cuota_capital, cuota_interes);
         tabla_result.push(cuota);
-        fecha = add_one_month(fecha);
-        meses_restantes_antes -= 1;
-        cap_pdte_antes -= cuota_capital;
     }
-
+    cap_pdte_antes = redondea_dos_decimales(cap_pdte_antes - cuota_capital);
     // Ajuste redondeo última cuota
     if cap_pdte_antes != 0.0 {
         let ult_cuota = tabla_result.cuotas.last_mut().unwrap();
@@ -115,6 +138,13 @@ pub fn calcula_tabla_amortizacion(capital: f64, interes: f64, meses: i32, fecha_
         ult_cuota.cuota_capital = redondea_dos_decimales(ult_cuota.cuota_capital + cap_pdte_antes);
     } 
     tabla_result
+}
+fn meses_primera_cuota(fecha_prestamo: Date<Utc>, fecha_primera_cuota: Date<Utc>) -> f64 {
+    let mut dias_primera_cuota = (fecha_primera_cuota - fecha_prestamo).num_days();
+    if dias_primera_cuota == 31 {
+        dias_primera_cuota = 30;
+    }
+    dias_primera_cuota as f64 / 30.0
 }
 /// Recibe una tabla de cuotas y una lista de fechas y devuelve una TablaAmortizacion 
 /// con las cuotas actualizadas al euribor+incremento. 
@@ -130,14 +160,23 @@ mod tests {
 
     use super::*;
     #[test]
+    fn test_intereses_dias() {
+        let tipo = 0.1;
+        let dias: i32 = 10;
+        let capital = 100000.0;
+        assert_eq!(273.97, intereses_dias(capital, tipo, dias));
+    }
+    #[test]
     fn test_calcula_tabla_amortizacion() {
-        let capital: f64 = 10000.0;
+        let capital: f64 = 100000.0;
         let interes: f64 = 0.1;
         let meses: i32 = 60;
+        let fecha_prestamo = Utc.ymd(2022, 4, 20);
         let fecha_primera_cuota = Utc.ymd(2022, 5, 12);
-        let tabla_amort = calcula_tabla_amortizacion(capital, interes, meses, fecha_primera_cuota);
+        let tabla_amort = calcula_tabla_amortizacion(fecha_prestamo,
+            capital, interes, meses, fecha_primera_cuota);
         assert_eq!(60, tabla_amort.len());
-        //tabla_amort.disp();
+        tabla_amort.disp();
     }   
     #[test]
     fn test_actualiza_euribor() {

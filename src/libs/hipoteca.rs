@@ -78,9 +78,9 @@ impl Hipoteca {
             tabla_amort_con_actualizacion_euribor: TablaAmortizacion::new(),
             tabla_amort_impago: TablaAmortizacion::new(),
         };
+        h.calcula_fechas_revisiones();
         h.tabla_amort_sin_actualizacion = h.calcula_tabla_amort_sin_actualizacion();
         h.tabla_amort_con_actualizacion_euribor = h.calcula_tabla_amort_con_actualizacion_euribor();
-        h.calcula_fechas_revisiones();
         h        
     }
 
@@ -88,7 +88,8 @@ impl Hipoteca {
     /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
     /// de interés
     pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
-        calcula_tabla_amortizacion(self.capital_prestado, self.tipo_interes_anual,
+        calcula_tabla_amortizacion(self.fecha_escritura, 
+            self.capital_prestado, self.tipo_interes_anual,
             self.meses, self.fecha_primera_cuota)        
     }
     fn calcula_fechas_revisiones(&mut self)  {
@@ -120,41 +121,37 @@ impl Hipoteca {
     /// Calcula novaciones
     pub fn calcula_novaciones(&mut self) {
         if self.novaciones.len() > 0 {
-            for i in 0..self.novaciones.len() {
-                //let &novacion = self.novaciones[i];
-                //self.calcula_novacion(novacion);
-            }
+            
         }
     }
-    fn calcula_novacion(&mut self, novacion: Novacion) {
-        // Tabla de cuotas hasta la fecha de la novación
-        let mut tabla_antes: TablaAmortizacion = TablaAmortizacion::new();
-        self.tabla_amort_con_actualizacion_euribor.cuotas
-            .iter()
-            .filter(|x| x.fecha <= novacion.fecha_novacion)
-            .for_each(|x| tabla_antes.push(x.clone()));
-        if tabla_antes.len() == 0 {
-            // Si no hay cuotas anteriores a la novación volver
-            return
+    fn calcula_novacion(&mut self, novacion: &Novacion) {
+        let indice_primera_cuota_novada: usize;
+        match self.indice_primera_cuota_novada(novacion) {
+            Some(number) => indice_primera_cuota_novada = number,
+            None => return,
         }
-        // Tabla de las cuotas posteriores a la novación
-        let mut tabla_despues = TablaAmortizacion::new();
-        self.tabla_amort_con_actualizacion_euribor.cuotas
-            .iter()
-            .filter(|x| x.fecha > novacion.fecha_novacion)
-            .for_each(|x| tabla_despues.push(x.clone()));
-        if tabla_despues.len() == 0 {
-            // Si no hay cuotas posteriores a la novación volver
-            return
-        }
-        // Capital pendiente a partir de la fecha de la novación
-        let cap_pendiente = tabla_antes.cuotas.last().unwrap()
-            .cap_pendiente_despues() + novacion.incremento_capital;
-        //let meses_restantes = primera_cuota_tras_novacion.meses_restantes_antes;
-        // Recalcular la hipoteca como una nueva hipoteca en el periodo restante
-        //let nueva_h = Hipoteca::new("Nueva", )
-        
-
+        let primera_cuota_novada: &Cuota = 
+            &self.tabla_amort_con_actualizacion_euribor.cuotas[indice_primera_cuota_novada];
+        let tipo = primera_cuota_novada.i;
+        let dias_hasta_primera_cuota_novada = 
+            (primera_cuota_novada.fecha - novacion.fecha_novacion).num_days() as i32; 
+        let intereses_primera_cuota = 
+            intereses_dias(novacion.incremento_capital, 
+            tipo, 
+            dias_hasta_primera_cuota_novada); 
+        let nuevo_capital_pendiente = 
+            primera_cuota_novada.cap_pendiente_antes + 
+            novacion.incremento_capital;
+        let meses = primera_cuota_novada.meses_restantes_antes;
+        // let mut tabla_novada = calcula_tabla_amortizacion(
+        //     nuevo_capital_pendiente, tipo, 
+        //     meses, primera_cuota_novada.fecha);
+        //tabla_novada.cuotas[0].
+    }
+    fn indice_primera_cuota_novada(&self, novacion: &Novacion) -> Option<usize> {
+        self.tabla_amort_con_actualizacion_euribor
+            .cuotas.iter()
+            .position(|x| x.fecha > novacion.fecha_novacion)
     }
     /// Calcula la tabla de amortización desde el momento del 
     /// impago hasta la fecha de resolución de la hipoteca
@@ -204,21 +201,47 @@ mod tests {
     
     #[test]
     fn test_pruebas() {
-        let nombre = String::from("Prueba");
-        let fecha = Utc.ymd(2004,3,17);
-        let _h1= Hipoteca::new(nombre, 
-            fecha, 
-            Utc.ymd(2004, 4, 17), 
-            10000.0, 0.04,
-            5,1,
-            2,0.00, 
-            0.00, 0.12, Some(Utc.ymd(2018, 5, 17)),
-            Some(Utc.ymd(2022, 8, 5)));
-        //_h1.tabla_amort_sin_actualizacion.disp();
-        //_h1.tabla_amort_con_actualizacion_euribor.disp();
-
+        let cap = 100000.0;
+        let tipo_interes_anual = 0.04;
+        let i_mensual: f64 = tipo_interes_anual /12.0;
+        let meses = 2.5;
+        let importe_mensualidad: f64 = 
+        redondea_cinco_decimales(cap * i_mensual / (1.0 - (1.0+i_mensual).powf(-meses)));
+        println!("{}", importe_mensualidad);
+        println!("Primera cuota = 0.5 cuota");
+        let mut int = intereses_mes(cap, tipo_interes_anual)*0.5;
+        let mut cuota_capital = redondea_dos_decimales(importe_mensualidad*0.5 - int);
+        let mut cap_pdte_after = redondea_dos_decimales(cap - cuota_capital);
+        println!("{} {} {} {}", redondea_dos_decimales(importe_mensualidad*0.5), cuota_capital, int, cap_pdte_after);
+        int = intereses_mes(cap_pdte_after, tipo_interes_anual);
+        cuota_capital = redondea_dos_decimales(importe_mensualidad - int);
+        cap_pdte_after = redondea_dos_decimales(cap_pdte_after -cuota_capital);
+        println!("{} {} {} {}", importe_mensualidad, cuota_capital, int, cap_pdte_after);
+        int = intereses_mes(cap_pdte_after, tipo_interes_anual);
+        cuota_capital = redondea_dos_decimales(importe_mensualidad - int);
+        cap_pdte_after = redondea_dos_decimales(cap_pdte_after -cuota_capital);
+        println!("{} {} {} {}", importe_mensualidad, cuota_capital, int, cap_pdte_after);
+        
     }
     
+    #[test]
+    fn test_indice_primera_cuota_novada() {
+        let mut h = create_sample_hipoteca();
+        //h.tabla_amort_con_actualizacion_euribor.disp();
+        let nov = Novacion::new(Utc.ymd(2003, 4, 17), 0.0);
+        assert_eq!(Some(0), h.indice_primera_cuota_novada(&nov));
+        let nov = Novacion::new(Utc.ymd(2004, 4, 17), 0.0);
+        assert_eq!(Some(1), h.indice_primera_cuota_novada(&nov));
+        let nov = Novacion::new(Utc.ymd(2004, 6, 20), 0.0);
+        assert_eq!(Some(3), h.indice_primera_cuota_novada(&nov));
+        let nov = Novacion::new(Utc.ymd(2004, 8, 17), 0.0);
+        assert_eq!(None, h.indice_primera_cuota_novada(&nov));
+        let nov = Novacion::new(Utc.ymd(2005, 4, 17), 0.0);
+        assert_eq!(None, h.indice_primera_cuota_novada(&nov));
+        
+        
+    }
+
     #[test]
     fn test_new() {
         let h = create_sample_hipoteca();
