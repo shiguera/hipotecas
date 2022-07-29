@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use chrono::Utc;
 
+use super::lib;
 use super::lib::*;
 use super::cuota::Cuota;
 use super::tabla_amort::TablaAmortizacion;
@@ -88,7 +89,7 @@ impl Hipoteca {
     /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
     /// de interés
     pub fn calcula_tabla_amort_sin_actualizacion(&mut self) -> TablaAmortizacion {
-        calcula_tabla_amortizacion(self.fecha_escritura, 
+        lib::calcula_tabla_amortizacion(self.fecha_escritura, 
             self.capital_prestado, self.tipo_interes_anual,
             self.meses, self.fecha_primera_cuota)        
     }
@@ -309,8 +310,8 @@ mod tests {
         assert_eq!(Utc.ymd(2029, 3, 17), cuota.fecha);
         assert_eq!(0.04, cuota.i);
         assert_eq!(1, cuota.meses_restantes_antes);
-        assert_eq!(445.1, cuota.cuota_total);
-        assert_eq!(443.62, cuota.cuota_capital);
+        assert_eq!(445.12, cuota.cuota_total);
+        assert_eq!(443.64, cuota.cuota_capital);
         assert_eq!(1.48, cuota.cuota_interes);
         //h1.tabla_amort_sin_actualizacion.disp();
     }

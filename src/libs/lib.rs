@@ -103,15 +103,15 @@ pub fn calcula_tabla_amortizacion(fecha_prestamo: Date<Utc>, capital: f64, tipo_
     // Cálculo de la primera cuota
     let mut fecha = fecha_primera_cuota;
     let meses_primera_cuota = meses_primera_cuota(fecha_prestamo, fecha_primera_cuota);
-    println!("meses_primera_cuota:{}", meses_primera_cuota);
+    //println!("meses_primera_cuota:{}", meses_primera_cuota);
     let mut cap_pdte_antes: f64 = capital;
     let i_mensual: f64 = tipo_interes_anual / 12.0;
     let meses_restantes_antes_1 = 
         meses as f64 -1.0 + meses_primera_cuota;
-    println!("meses_restantes_antes_1:{}", meses_restantes_antes_1);    
+    //println!("meses_restantes_antes_1:{}", meses_restantes_antes_1);    
     let importe_mensualidad: f64 = redondea_dos_decimales(cap_pdte_antes * i_mensual /
         (1.0 - (1.0+i_mensual).powf(-meses_restantes_antes_1)));
-    println!("importe_mensualidad:{}", importe_mensualidad);
+    //println!("importe_mensualidad:{}", importe_mensualidad);
     let mut cuota_total = redondea_dos_decimales(importe_mensualidad * meses_primera_cuota);
     let mut cuota_interes = redondea_dos_decimales(cap_pdte_antes * i_mensual * meses_primera_cuota);
     let mut cuota_capital = redondea_dos_decimales(cuota_total - cuota_interes);
