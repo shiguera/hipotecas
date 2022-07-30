@@ -5,7 +5,7 @@ use super::lib;
 use super::lib::*;
 use super::cuota::Cuota;
 use super::tabla_amort::TablaAmortizacion;
-use super::euribor_data::EuriborData;
+//use super::euribor_data::EuriborData;
 use super::novacion::Novacion;
 
 pub struct Hipoteca {
@@ -227,7 +227,7 @@ mod tests {
     
     #[test]
     fn test_indice_primera_cuota_novada() {
-        let mut h = create_sample_hipoteca();
+        let h = create_sample_hipoteca();
         //h.tabla_amort_con_actualizacion_euribor.disp();
         let nov = Novacion::new(Utc.ymd(2003, 4, 17), 0.0);
         assert_eq!(Some(0), h.indice_primera_cuota_novada(&nov));

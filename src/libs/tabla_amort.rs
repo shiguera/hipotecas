@@ -1,9 +1,9 @@
 use super::euribor_data::EuriborData;
-use super::{cuota::Cuota};
+use super::cuota::Cuota;
 use super::lib::*;
-use chrono::prelude::*;
 use std::fs::File;
-use std::io::{Write};
+use std::io::Write;
+use chrono::prelude::*;
 
 
 pub struct TablaAmortizacion {
@@ -248,7 +248,7 @@ mod tests {
             Some(Utc.ymd(2022, 8, 5)));
         h1.tabla_amort_sin_actualizacion.disp();
         h1.tabla_amort_con_actualizacion_euribor.disp();
-        let tabla_actualizada = h1.tabla_amort_sin_actualizacion.actualiza_euribor(
+        let _tabla_actualizada = h1.tabla_amort_sin_actualizacion.actualiza_euribor(
             Utc.ymd(2004, 5, 17), 0.0, 0.0, 0.12);
         
     }

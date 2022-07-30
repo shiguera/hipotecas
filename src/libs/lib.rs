@@ -149,14 +149,14 @@ fn meses_primera_cuota(fecha_prestamo: Date<Utc>, fecha_primera_cuota: Date<Utc>
 /// Recibe una tabla de cuotas y una lista de fechas y devuelve una TablaAmortizacion 
 /// con las cuotas actualizadas al euribor+incremento. 
 pub fn actualiza_euribor(tabla: TablaAmortizacion, 
-    fechas: Vec<Date<Utc>>, incremento_euribor: f64, i_min: f64, i_max: f64) -> TablaAmortizacion {
+    _fechas: Vec<Date<Utc>>, _incremento_euribor: f64, _i_min: f64, _i_max: f64) -> TablaAmortizacion {
     let tabla_result = TablaAmortizacion::new();
 
     tabla_result
 }
 #[cfg(test)]
 mod tests {
-    use crate::libs::tabla_amort;
+    //use crate::libs::tabla_amort;
 
     use super::*;
     #[test]
@@ -180,8 +180,8 @@ mod tests {
     }   
     #[test]
     fn test_actualiza_euribor() {
-        let fechas = vec![Utc.ymd(2012, 5, 17), Utc.ymd(2012, 11, 17)];
-        let tabla = TablaAmortizacion::new();
+        let _fechas = vec![Utc.ymd(2012, 5, 17), Utc.ymd(2012, 11, 17)];
+        let _tabla = TablaAmortizacion::new();
 
     }
     #[test]
