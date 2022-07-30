@@ -221,6 +221,7 @@ mod tests {
         tabla.disp();    
     }
     #[test]
+    #[ignore] // To run, use cargo test -- --ignored
     fn test_print() -> Result<()> {
         let nombre = String::from("h1");
         let fecha = Utc.ymd(2004,3,17);

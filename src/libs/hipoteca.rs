@@ -110,9 +110,9 @@ impl Hipoteca {
     pub fn calcula_tabla_amort_con_actualizacion_euribor(&mut self) -> TablaAmortizacion {
         let mut tabla = self.calcula_tabla_amort_sin_actualizacion();
         self.calcula_fechas_revisiones();
-        for i in &self.fechas_revisiones {
+        for fecha in &self.fechas_revisiones {
             tabla = tabla.actualiza_euribor(
-                i.clone(), self.incremento_euribor, self.i_min, self.i_max);
+                fecha.clone(), self.incremento_euribor, self.i_min, self.i_max);
         }
         tabla
     }

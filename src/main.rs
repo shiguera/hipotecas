@@ -1,5 +1,16 @@
 mod libs;
 
+use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
+use log4rs::{
+    append::{
+        console::{ConsoleAppender, Target},
+        file::FileAppender,
+    },
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+    filter::threshold::ThresholdFilter,
+};
+
 //use std::error::Error;
 use std::io;
 use std::io::{prelude::*, Result};
@@ -25,11 +36,16 @@ const WORKING_DIRECTORY: &str = "C:\\Users\\profesor\\rustprj\\hipotecas\\target
 
 fn main() -> Result<()>{
     if args().len() != 2 {
-        println!("ERROR DE EJECUCIÓN");
+        println!("ERROR DE EJECUCIÓN: El programa no ha recibido el número correcto de parámetros");
         wait();
+        return Ok(())
     }
+
+    configure_logger();
+
+
     let worksheet_file_name: String = args().last().unwrap();
-    // println!("{}", worksheet_file_name);
+    debug!("Hoja de calculo: {}", worksheet_file_name);
     
     //println!("{}", working_directory);
     let filepath_cad: String =  String::from(WORKING_DIRECTORY) + &worksheet_file_name;
@@ -38,8 +54,16 @@ fn main() -> Result<()>{
     let book: Spreadsheet;
     let book_option = reader::xlsx::read(path);
     match book_option {
-        Ok(_) => book = book_option.unwrap(),
-        _ => {println!("Error al leer hoja de cálculo"); wait(); return Ok(())}
+        Ok(_) => {
+            book = book_option.unwrap();
+            debug!("Leida hoja de calculo: {:?}", filepath_cad);
+        },
+        _ => {
+            error!("No se pudo leer la hoja de calculo {}", filepath_cad);
+            println!("Error al leer hoja de cálculo"); 
+            wait(); 
+            return Ok(())
+        }
     }
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
@@ -64,6 +88,49 @@ fn main() -> Result<()>{
     Ok(())
 }
 
+fn configure_logger() -> std::result::Result<(), SetLoggerError> {
+    let level = log::LevelFilter::Info;
+    let file_path = "hipotecas.log";
+
+    // Build a stderr logger.
+    let stderr = ConsoleAppender::builder().target(Target::Stderr).build();
+
+    // Logging to log file.
+    let logfile = FileAppender::builder()
+        // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
+        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M)}-{f}-{l} - {m}\n")))
+        .build(file_path)
+        .unwrap();
+
+    // Log Trace level output to file where trace is the default level
+    // and the programmatically specified level to stderr.
+    let config = Config::builder()
+        .appender(Appender::builder().build("logfile", Box::new(logfile)))
+        .appender(
+            Appender::builder()
+                .filter(Box::new(ThresholdFilter::new(level)))
+                .build("stderr", Box::new(stderr)),
+        )
+        .build(
+            Root::builder()
+                .appender("logfile")
+                .appender("stderr")
+                .build(LevelFilter::Trace),
+        )
+        .unwrap();
+
+    // Use this to change log levels at runtime.
+    // This means you can change the default log level to trace
+    // if you are trying to debug an issue and need more logs on then turn it off
+    // once you are done.
+    let _handle = log4rs::init_config(config)?;
+
+    debug!("------------------");
+    debug!("Logger initialized");
+    debug!("------------------");
+
+    Ok(())
+}
 
 fn print_csv_files(h: &Hipoteca) {
     let filename = h.nombre_operacion.clone();
