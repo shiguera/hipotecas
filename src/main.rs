@@ -18,6 +18,11 @@ use umya_spreadsheet::helper::date::{excel_to_date_time_object, CALENDAR_WINDOWS
 /// Número máximo de novaciones que se leerán de la hoja de cálculo
 const MAX_NOVACIONES: i32 = 5;
 
+/// El directorio de trabajo del programa. Es donde esté alojada la hoja de cálculo con los datos
+/// de la hipoteca a procesar
+//const WORKING_DIRECTORY: String = String::from("C:\\ProgramaHipotecas\\");
+const WORKING_DIRECTORY: &str = "C:\\Users\\profesor\\rustprj\\hipotecas\\target\\debug\\";
+
 fn main() -> Result<()>{
     if args().len() != 2 {
         println!("ERROR DE EJECUCIÓN");
@@ -26,25 +31,30 @@ fn main() -> Result<()>{
     let worksheet_file_name: String = args().last().unwrap();
     // println!("{}", worksheet_file_name);
     
-    //let working_directory: String = String::from("C:\\ProgramaHipotecas\\");
-    let working_directory: String = String::from("C:\\Users\\profesor\\rustprj\\hipotecas\\target\\debug\\");
-     
     //println!("{}", working_directory);
-    let filepath_cad: String =  working_directory + &worksheet_file_name;
+    let filepath_cad: String =  String::from(WORKING_DIRECTORY) + &worksheet_file_name;
     //println!("{}", filepath_cad);
     let path = std::path::Path::new(&filepath_cad);
-    let book: Spreadsheet = reader::xlsx::read(path).unwrap();
+    let book: Spreadsheet;
+    let book_option = reader::xlsx::read(path);
+    match book_option {
+        Ok(_) => book = book_option.unwrap(),
+        _ => {println!("Error al leer hoja de cálculo"); wait(); return Ok(())}
+    }
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
+    // Leer los datos básicos de la hipoteca desde la hoja de cálculo
     let mut h = read_data_from_excel_file(worksheet);
     
+    // Hacer el cáclculo de las novaciones
     h.calcula_novaciones();
 
-    //println!("Leídos datos");
+    // Hacer el cáclculo del impago
     if h.fecha_impago.is_some() {
         h.tabla_amort_impago = h.calcula_tabla_impago();
     }
 
+    // Imprimir los resultados en ficheros csv
     print_csv_files(&h);   
     
     // let _ = umya_spreadsheet::writer::xlsx::write(&book, path);
@@ -90,7 +100,7 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
     let nombre = read_string(worksheet, "C7");
     let fecha = read_fecha(worksheet, "C8");    
     let fecha_primera_cuota = read_fecha(worksheet, "C9"); 
-    let capital = read_f64(worksheet, "C10");
+    let capital = redondea_dos_decimales(read_f64(worksheet, "C10"));
     let tipo = redondea_cinco_decimales(read_f64(worksheet, "C11")/100.0);
     let meses = read_i32(worksheet, "C12");
     let meses_primera_revision = read_i32(worksheet, "C13");

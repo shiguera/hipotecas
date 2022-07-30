@@ -21,8 +21,6 @@ pub struct Hipoteca {
     pub tipo_interes_anual: f64, 
     /// Meses para amortizar la hipoteca
     pub meses: i32, 
-    /// Fecha último vencimiento
-    pub fecha_ultimo_vencimiento: Date<Utc>,
     /// Meses de aplicación del tipo de interes nominal inicial, antes 
     /// de la primera actualización
     pub meses_hasta_primera_revision: i32, 
@@ -65,7 +63,6 @@ impl Hipoteca {
             capital_prestado, 
             tipo_interes_anual,  
             meses, 
-            fecha_ultimo_vencimiento: add_n_months(fecha_escritura, meses),
             meses_hasta_primera_revision, 
             intervalo_revisiones,  
             incremento_euribor, 
@@ -85,6 +82,9 @@ impl Hipoteca {
         h        
     }
 
+    pub fn fecha_ultimo_vencimiento(&self) -> Date<Utc> {
+        add_n_months(self.fecha_primera_cuota, self.meses-1)
+    }
     /// Calcula la tabla de amortización con los datos iniciales de 
     /// la hipoteca, sin ningún tipo de actualizaciones del tipo 
     /// de interés
@@ -100,7 +100,7 @@ impl Hipoteca {
         self.fechas_revisiones.push(fecha_primera_revision);
         let mut fecha_revision = 
             add_n_months(fecha_primera_revision, self.intervalo_revisiones);
-        while fecha_revision <= self.fecha_ultimo_vencimiento {
+        while fecha_revision <= self.fecha_ultimo_vencimiento() {
             self.fechas_revisiones.push(fecha_revision.clone());
             fecha_revision = add_n_months(fecha_revision, self.intervalo_revisiones);
         }
@@ -225,6 +225,7 @@ mod tests {
         
     }
     
+
     #[test]
     fn test_indice_primera_cuota_novada() {
         let h = create_sample_hipoteca();
@@ -238,9 +239,7 @@ mod tests {
         let nov = Novacion::new(Utc.ymd(2004, 8, 17), 0.0);
         assert_eq!(None, h.indice_primera_cuota_novada(&nov));
         let nov = Novacion::new(Utc.ymd(2005, 4, 17), 0.0);
-        assert_eq!(None, h.indice_primera_cuota_novada(&nov));
-        
-        
+        assert_eq!(None, h.indice_primera_cuota_novada(&nov));    
     }
 
     #[test]
@@ -325,14 +324,15 @@ mod tests {
     }
 
     #[test]
-    fn test_fecha_ult_vto() {
+    fn test_fecha_ultimo_vencimiento() {
         let nombre = String::from("Prueba");
         let fecha = Utc.ymd(2004,3,17);
         let h1= Hipoteca::new(nombre, fecha,
-            Utc.ymd(2004, 04, 17), 84140.0, 0.04,
+            Utc.ymd(2004, 04, 17), 84140.0,
+            0.04,
             300,6,12,0.01, 
             0.04, 0.12, Some(Utc.ymd(2018, 5, 17)),
             Some(Utc.ymd(2022, 8, 5)));
-        assert_eq!(Utc.ymd(2029, 3, 17), h1.fecha_ultimo_vencimiento);
+        assert_eq!(Utc.ymd(2029, 3, 17), h1.fecha_ultimo_vencimiento());
     }
 }
