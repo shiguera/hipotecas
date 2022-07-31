@@ -42,40 +42,29 @@ fn main() -> Result<()>{
     }
 
     configure_logger();
-
+    debug!("WORKING_DIRECTORY: {}", WORKING_DIRECTORY);
 
     let worksheet_file_name: String = args().last().unwrap();
     debug!("Hoja de calculo: {}", worksheet_file_name);
     
-    //println!("{}", working_directory);
     let filepath_cad: String =  String::from(WORKING_DIRECTORY) + &worksheet_file_name;
-    //println!("{}", filepath_cad);
-    let path = std::path::Path::new(&filepath_cad);
-    let book: Spreadsheet;
-    let book_option = reader::xlsx::read(path);
-    match book_option {
-        Ok(_) => {
-            book = book_option.unwrap();
-            debug!("Leida hoja de calculo: {:?}", filepath_cad);
-        },
-        _ => {
-            error!("No se pudo leer la hoja de calculo {}", filepath_cad);
-            println!("Error al leer hoja de cálculo"); 
-            wait(); 
-            return Ok(())
-        }
-    }
+    let book: Spreadsheet = open_workbook(filepath_cad);
+
     let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
     
     // Leer los datos básicos de la hipoteca desde la hoja de cálculo
     let mut h = read_data_from_excel_file(worksheet);
-    
+    debug!("Leidos datos de la hipoteca");
+
     // Hacer el cáclculo de las novaciones
     h.calcula_novaciones();
-
+    debug!("Calculadas novaciones");
+    
     // Hacer el cáclculo del impago
     if h.fecha_impago.is_some() {
+        debug!("Calculando tabla de impago");
         h.tabla_amort_impago = h.calcula_tabla_impago();
+        debug!("Calculada tabla impago");
     }
 
     // Imprimir los resultados en ficheros csv
@@ -131,39 +120,64 @@ fn configure_logger() -> std::result::Result<(), SetLoggerError> {
 
     Ok(())
 }
-
+fn open_workbook(filepath_cad: String) -> Spreadsheet {
+    debug!("fn open_workbook()");
+    let path = std::path::Path::new(&filepath_cad);
+    let book: Spreadsheet;
+    let book_option = reader::xlsx::read(path);
+    match book_option {
+        Ok(_) => {
+            book = book_option.unwrap();
+            debug!("Leida hoja de calculo: {:?}", filepath_cad);
+            book
+        },
+        _ => {
+            error!("No se pudo leer la hoja de calculo {}", filepath_cad);
+            println!("Error al leer hoja de cálculo"); 
+            wait(); 
+            std::process::exit(0);
+        }
+    }
+}
 fn print_csv_files(h: &Hipoteca) {
-    let filename = h.nombre_operacion.clone();
-    println!("{}", filename);
+    debug!("fn print_csv_files()");
+    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone();
     let result = h.tabla_amort_sin_actualizacion.print(&filename);
     if result.is_ok() {
-        println!("El fichero con la tabla de amortización inicial se escribió en {}", h.nombre_operacion.clone()+".txt" );
+        println!("El fichero con la tabla de amortización inicial se escribió en {}", filename.clone() + ".txt" );
+        debug!("El fichero con la tabla de amortizacion inicial se escribio en {}", filename + ".txt");
     } else {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización inicial");
         println!("{:?}", result);
+        error!("Se produjeron errores al escribir el fichero con la tabla de amortizacion inicial: {:?}", result);
     }
     wait();
-    let filename = h.nombre_operacion.clone() + "_euribor";
+    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_euribor";
     let result = h.tabla_amort_con_actualizacion_euribor.print(&filename);
     if result.is_ok() {
-        println!("El fichero con la tabla de amortización con actualizaciones del euribor se escribió en {}", h.nombre_operacion.clone()+"_euribor.txt" );
+        println!("El fichero con la tabla de amortización con actualizaciones del euribor se escribió en {}", filename.clone() + ".txt" );
+        debug!("El fichero con la tabla de amortizacion con actualizaciones del euribor se escribio en {}", filename + "_euribor.txt" );
     } else {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
+        error!("Se produjeron errores al escribir el fichero con la tabla de amortizacion con actualizaciones del euribor: {:?}", result);
     }
     wait();
     if h.fecha_impago.is_some() {
-        let filename = h.nombre_operacion.clone() + "_impago";
+        let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_impago";
         let result = h.tabla_amort_impago.print(&filename);
         if result.is_ok() {
-            println!("El fichero con la tabla de impagos euribor se escribió en {}", h.nombre_operacion.clone()+"_impago.txt" );
+            println!("El fichero con la tabla de impagos se escribió en {}", filename.clone() +".txt" );
+            debug!("El fichero con la tabla de impagos se escribio en {}", filename +".txt" );
         } else {
             println!("Se produjeron errores al escribir el fichero con la tabla de impagos");
             println!("{:?}", result);
+            error!("Se produjeron errores al escribir el fichero con la tabla de impagos{:?}", result);
         }
     }
 }
 fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
+    debug!("fn read_data_from_excel_files()");
     let nombre = read_string(worksheet, "C7");
     let fecha = read_fecha(worksheet, "C8");    
     let fecha_primera_cuota = read_fecha(worksheet, "C9"); 
@@ -187,6 +201,7 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
 }
 
 fn read_novaciones(worksheet: &Worksheet) -> Vec<Novacion> {
+    debug!("fn read_novaciones()");
     let mut novaciones = Vec::<Novacion>::new();
     let row: u32 = 28; // Primera fila de datos de las novaciones en la hoja de cálculo
     let mut col: u32 = 3; // Primera columna de datos de las novaciones en la hoja de cálculo
