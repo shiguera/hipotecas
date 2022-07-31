@@ -203,8 +203,8 @@ fn read_data_from_excel_file(worksheet: &Worksheet) -> Hipoteca {
 fn read_novaciones(worksheet: &Worksheet) -> Vec<Novacion> {
     debug!("fn read_novaciones()");
     let mut novaciones = Vec::<Novacion>::new();
-    let row: u32 = 28; // Primera fila de datos de las novaciones en la hoja de cálculo
-    let mut col: u32 = 3; // Primera columna de datos de las novaciones en la hoja de cálculo
+    let row: u32 = 9; // Primera fila de datos de las novaciones en la hoja de cálculo
+    let mut col: u32 = 6; // Primera columna de datos de las novaciones en la hoja de cálculo
     for _i in 0..MAX_NOVACIONES {
         let fecha: Option<Date<Utc>> = read_fecha_by_column_and_row(worksheet, &col, &row);
         if fecha.is_some() {
@@ -298,7 +298,7 @@ mod tests {
         let book: Spreadsheet = reader::xlsx::read(path).unwrap();
         let worksheet: &Worksheet = book.get_sheet(&0).unwrap(); 
         let h = read_data_from_excel_file(worksheet);
-
+        
         assert_eq!(2, h.novaciones.len());
         assert_eq!(Utc.ymd(2011, 11, 5), h.novaciones[0].fecha_novacion);
         assert_eq!(20000.0, h.novaciones[0].incremento_capital);
@@ -312,7 +312,6 @@ mod tests {
         let worksheet: &Worksheet = book.get_sheet(&0).unwrap();
         
         let h = read_data_from_excel_file(worksheet);
-        println!("Leídos datos");
         assert_eq!("Libro11", h.nombre_operacion);
         assert_eq!(Utc.ymd(2007, 2, 17), h.fecha_escritura);
         assert_eq!(84140.0, h.capital_prestado);
@@ -348,7 +347,7 @@ mod tests {
             Ok(spreadsheet) => {
                 let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
                 let fecha = read_fecha(worksheet, "C8");
-                assert_eq!(Utc.ymd(2007, 02, 17), fecha.unwrap());
+                assert_eq!(Utc.ymd(2007, 3, 17), fecha.unwrap());
                 let bad_fecha = read_fecha(worksheet, "D8");
                 assert!(bad_fecha.is_none());
             }
@@ -363,7 +362,7 @@ mod tests {
             Ok(spreadsheet) => {
                 let worksheet: &Worksheet = spreadsheet.get_sheet(&0).unwrap();
                 let fecha = read_fecha_by_column_and_row(worksheet, &3, &8);
-                assert_eq!(Utc.ymd(2007, 02, 17), fecha.unwrap());
+                assert_eq!(Utc.ymd(2007, 3, 17), fecha.unwrap());
                 let bad_fecha = read_fecha_by_column_and_row(worksheet, &4, &8);
                 assert!(bad_fecha.is_none());
             }
