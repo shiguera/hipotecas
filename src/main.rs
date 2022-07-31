@@ -141,22 +141,22 @@ fn open_workbook(filepath_cad: String) -> Spreadsheet {
 }
 fn print_csv_files(h: &Hipoteca) {
     debug!("fn print_csv_files()");
-    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone();
+    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + ".txt";
     let result = h.tabla_amort_sin_actualizacion.print(&filename);
     if result.is_ok() {
-        println!("El fichero con la tabla de amortización inicial se escribió en {}", filename.clone() + ".txt" );
-        debug!("El fichero con la tabla de amortizacion inicial se escribio en {}", filename + ".txt");
+        println!("El fichero con la tabla de amortización inicial se escribió en {}", filename.clone());
+        debug!("El fichero con la tabla de amortizacion inicial se escribio en {}", filename);
     } else {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización inicial");
         println!("{:?}", result);
         error!("Se produjeron errores al escribir el fichero con la tabla de amortizacion inicial: {:?}", result);
     }
     wait();
-    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_euribor";
+    let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_euribor.txt";
     let result = h.tabla_amort_con_actualizacion_euribor.print(&filename);
     if result.is_ok() {
-        println!("El fichero con la tabla de amortización con actualizaciones del euribor se escribió en {}", filename.clone() + ".txt" );
-        debug!("El fichero con la tabla de amortizacion con actualizaciones del euribor se escribio en {}", filename + "_euribor.txt" );
+        println!("El fichero con la tabla de amortización con actualizaciones del euribor se escribió en {}", filename.clone() );
+        debug!("El fichero con la tabla de amortizacion con actualizaciones del euribor se escribio en {}", filename);
     } else {
         println!("Se produjeron errores al escribir el fichero con la tabla de amortización con actualizaciones del euribor");
         println!("{:?}", result);
@@ -164,11 +164,11 @@ fn print_csv_files(h: &Hipoteca) {
     }
     wait();
     if h.fecha_impago.is_some() {
-        let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_impago";
+        let filename = String::from(WORKING_DIRECTORY) + &h.nombre_operacion.clone() + "_impago.txt";
         let result = h.tabla_amort_impago.print(&filename);
         if result.is_ok() {
-            println!("El fichero con la tabla de impagos se escribió en {}", filename.clone() +".txt" );
-            debug!("El fichero con la tabla de impagos se escribio en {}", filename +".txt" );
+            println!("El fichero con la tabla de impagos se escribió en {}", filename.clone());
+            debug!("El fichero con la tabla de impagos se escribio en {}", filename);
         } else {
             println!("Se produjeron errores al escribir el fichero con la tabla de impagos");
             println!("{:?}", result);
